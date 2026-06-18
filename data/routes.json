@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "key": "yushan-main-peak",
+      "name": "Yushan Main Peak",
+      "region": "Yushan National Park",
+      "difficulty": "hard",
+      "distanceM": 22000,
+      "ascentM": 1400,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [120.9098, 23.4882],
+          [120.9405, 23.4795],
+          [120.9572, 23.4707],
+          [120.9571, 23.4702]
+        ]
+      }
+    },
+    {
+      "key": "xueshan-main-peak",
+      "name": "Xueshan Main Peak",
+      "region": "Shei-Pa National Park",
+      "difficulty": "hard",
+      "distanceM": 21000,
+      "ascentM": 1800,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [121.2603, 24.3899],
+          [121.2533, 24.3987],
+          [121.2371, 24.3845],
+          [121.2306, 24.3841]
+        ]
+      }
+    },
+    {
+      "key": "hehuan-main-peak",
+      "name": "Hehuanshan Main Peak",
+      "region": "Taroko National Park",
+      "difficulty": "easy",
+      "distanceM": 4600,
+      "ascentM": 220,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [121.2785, 24.1411],
+          [121.2731, 24.1389],
+          [121.2706, 24.1357]
+        ]
+      }
+    },
+    {
+      "key": "qixingshan",
+      "name": "Qixingshan (Seven Star Mountain)",
+      "region": "Yangmingshan National Park",
+      "difficulty": "moderate",
+      "distanceM": 6400,
+      "ascentM": 560,
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [121.5436, 25.1741],
+          [121.5491, 25.1772],
+          [121.5552, 25.1801]
+        ]
+      }
+    }
+  ]
+}

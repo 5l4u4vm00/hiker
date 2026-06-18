@@ -34,7 +34,7 @@ export interface TrackPoint {
 /** A single GPS sample before it is persisted (no row id yet). */
 export type TrackPointInput = Omit<TrackPoint, 'id'>;
 
-export type RouteSource = 'osm' | 'gpx' | 'manual';
+export type RouteSource = 'osm' | 'gpx' | 'manual' | 'remote';
 
 export type RouteDifficulty = 'easy' | 'moderate' | 'hard' | 'expert';
 

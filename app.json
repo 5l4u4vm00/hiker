@@ -60,6 +60,9 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "routesEndpoint": "https://raw.githubusercontent.com/5l4u4vm00/hiker/main/data/routes.json"
     }
   }
 }

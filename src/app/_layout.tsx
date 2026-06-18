@@ -4,7 +4,7 @@ import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import { seedRoutesIfEmpty } from '@/data/seedRoutes';
+import { syncRoutes } from '@/data/routeService';
 import { getDatabase } from '@/db/client';
 // Importing the task module registers the background location task at startup.
 import '@/tracking/locationTask';
@@ -17,7 +17,7 @@ export default function RootLayout() {
     (async () => {
       try {
         await getDatabase();
-        await seedRoutesIfEmpty();
+        await syncRoutes();
         await restoreRecording();
       } catch (err) {
         console.warn('[startup] initialization failed', err);

@@ -80,15 +80,48 @@ export async function listRoutes(): Promise<Route[]> {
   return rows.map(mapRoute);
 }
 
-export async function searchRoutes(query: string): Promise<Route[]> {
+export interface RouteFilters {
+  keyword?: string;
+  region?: string;
+}
+
+/**
+ * Lists routes matching an optional free-text keyword (name or region) and/or
+ * an exact region. With no filters this returns every route. Results are
+ * ordered by name; callers may re-order by proximity client-side.
+ */
+export async function queryRoutes(filters: RouteFilters = {}): Promise<Route[]> {
   const db = await getDatabase();
-  const like = `%${query}%`;
+  const clauses: string[] = [];
+  const params: string[] = [];
+
+  const keyword = filters.keyword?.trim();
+  if (keyword) {
+    const like = `%${keyword}%`;
+    clauses.push('(name LIKE ? OR region LIKE ?)');
+    params.push(like, like);
+  }
+  const region = filters.region?.trim();
+  if (region) {
+    clauses.push('region = ?');
+    params.push(region);
+  }
+
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const rows = await db.getAllAsync<RouteRow>(
-    'SELECT * FROM routes WHERE name LIKE ? OR region LIKE ? ORDER BY name ASC',
-    like,
-    like,
+    `SELECT * FROM routes ${where} ORDER BY name ASC`,
+    ...params,
   );
   return rows.map(mapRoute);
+}
+
+/** Distinct, non-empty region names across all routes, ordered alphabetically. */
+export async function listRegions(): Promise<string[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ region: string }>(
+    "SELECT DISTINCT region FROM routes WHERE region IS NOT NULL AND region <> '' ORDER BY region ASC",
+  );
+  return rows.map((r) => r.region);
 }
 
 export async function getRoute(id: string): Promise<Route | null> {

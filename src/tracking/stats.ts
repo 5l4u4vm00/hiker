@@ -26,6 +26,20 @@ export function haversine(a: LatLon, b: LatLon): number {
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+/**
+ * Minimum great-circle distance (m) from an origin to any coordinate in a
+ * route geometry. Coordinates are GeoJSON `[lon, lat]` pairs. Returns Infinity
+ * for empty input so such routes sort last when ordering by proximity.
+ */
+export function nearestPointDistanceM(origin: LatLon, coords: GeoJSON.Position[]): number {
+  let min = Infinity;
+  for (const [lon, lat] of coords) {
+    const d = haversine(origin, { lat, lon });
+    if (d < min) min = d;
+  }
+  return min;
+}
+
 export interface ComputedStats {
   distanceM: number;
   ascentM: number;
