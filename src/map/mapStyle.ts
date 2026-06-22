@@ -1,4 +1,4 @@
-import type { LngLat, StyleSpecification } from '@maplibre/maplibre-react-native';
+import type { LngLat, LngLatBounds, StyleSpecification } from '@maplibre/maplibre-react-native';
 
 import type { TrackPoint } from '@/db/types';
 
@@ -62,6 +62,23 @@ export function pointsToLineString(points: TrackPoint[]): GeoJSON.Feature<GeoJSO
       coordinates: points.map((p) => [p.lon, p.lat]),
     },
   };
+}
+
+/**
+ * Computes the bounding box of GeoJSON `[lon, lat]` coordinates as a MapLibre
+ * `[west, south, east, north]` tuple the camera can fit. Returns null when empty.
+ */
+export function boundsOfCoords(coords: number[][]): LngLatBounds | null {
+  if (coords.length === 0) return null;
+  let [west, south] = coords[0];
+  let [east, north] = coords[0];
+  for (const [lon, lat] of coords) {
+    west = Math.min(west, lon);
+    east = Math.max(east, lon);
+    south = Math.min(south, lat);
+    north = Math.max(north, lat);
+  }
+  return [west, south, east, north];
 }
 
 /** Returns the most recent point as a [lon, lat] tuple, or null. */

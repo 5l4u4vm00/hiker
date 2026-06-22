@@ -1,36 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
-import { GeoJSONSource, type LngLatBounds, Layer } from '@maplibre/maplibre-react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { MapCanvas } from '@/components/map-canvas';
+import { PrimaryButton } from '@/components/primary-button';
 import { StatCard, StatGrid } from '@/components/stat-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { getRoute, getRouteWaypoints } from '@/db/routes';
 import type { Route, Waypoint } from '@/db/types';
+import { boundsOfCoords } from '@/map/mapStyle';
 import {
   deleteRegion,
   downloadRegion,
   listDownloadedRegions,
   regionForRoute,
 } from '@/map/offlineTiles';
+import { useFollowStore } from '@/state/followStore';
 import { formatDistance, formatElevation } from '@/tracking/stats';
-
-function boundsOfCoords(coords: number[][]): LngLatBounds | null {
-  if (coords.length === 0) return null;
-  let [west, south] = coords[0];
-  let [east, north] = coords[0];
-  for (const [lon, lat] of coords) {
-    west = Math.min(west, lon);
-    east = Math.max(east, lon);
-    south = Math.min(south, lat);
-    north = Math.max(north, lat);
-  }
-  return [west, south, east, north];
-}
 
 export default function RouteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -78,6 +68,12 @@ export default function RouteDetailScreen() {
       setDownloading(false);
     }
   }, [route, refreshDownloaded]);
+
+  const onFollow = useCallback(() => {
+    if (!route) return;
+    useFollowStore.getState().follow(route.id);
+    router.navigate('/(tabs)');
+  }, [route]);
 
   const onDelete = useCallback(() => {
     if (!downloadedPackId) return;
@@ -193,9 +189,12 @@ export default function RouteDetailScreen() {
             </Pressable>
           )}
 
+          <PrimaryButton title="Follow on map" onPress={onFollow} />
+
           <ThemedText type="small" themeColor="textSecondary">
-            Download this route&apos;s map area for offline use, then record your hike from the Map
-            tab to navigate it.
+            Download this route&apos;s map area first so it works without signal. &ldquo;Follow on
+            map&rdquo; overlays the route on the Map tab, where you can record your hike and stay on
+            track offline.
           </ThemedText>
         </View>
       </ScrollView>
