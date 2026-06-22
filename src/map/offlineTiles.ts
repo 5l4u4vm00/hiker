@@ -1,6 +1,25 @@
 import { OfflineManager, type LngLatBounds } from '@maplibre/maplibre-react-native';
+import { File, Paths } from 'expo-file-system';
 
 import { OSM_STYLE_JSON } from '@/map/mapStyle';
+
+/**
+ * MapLibre's offline downloader takes a style *URL*, not an inline style object
+ * (iOS does `[NSURL URLWithString:mapStyle]`, Android `OfflineTilePyramidRegionDefinition(mapStyle, …)`).
+ * Passing serialized style JSON yields a nil URL and MapLibre silently falls
+ * back to its default demo style, then crashes the process while downloading it.
+ * So we persist the style to a local file and hand the downloader its `file://`
+ * URI; MapLibre's file source loads it and downloads the tiles its sources name.
+ */
+function offlineStyleUri(): string {
+  const file = new File(Paths.cache, 'offline-style.json');
+  if (file.exists) {
+    file.delete();
+  }
+  file.create();
+  file.write(OSM_STYLE_JSON);
+  return file.uri;
+}
 
 /**
  * A bounded tile pack to download for offline use. Bounds are
@@ -61,10 +80,11 @@ export function downloadRegion(
   preset: OfflineRegionPreset,
   onProgress?: (progress: DownloadProgress) => void,
 ): Promise<void> {
+  const mapStyle = offlineStyleUri();
   return new Promise((resolve, reject) => {
     OfflineManager.createPack(
       {
-        mapStyle: OSM_STYLE_JSON,
+        mapStyle,
         bounds: preset.bounds,
         minZoom: preset.minZoom,
         maxZoom: preset.maxZoom,
