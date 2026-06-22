@@ -1,7 +1,8 @@
+import { Ionicons } from '@expo/vector-icons';
 import { GeoJSONSource, type CameraRef, Layer } from '@maplibre/maplibre-react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { MapCanvas } from '@/components/map-canvas';
 import { StatCard, StatGrid } from '@/components/stat-card';
@@ -10,6 +11,12 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { getRoute, getRouteWaypoints } from '@/db/routes';
 import type { Route, Waypoint } from '@/db/types';
+import {
+  deleteRegion,
+  downloadRegion,
+  listDownloadedRegions,
+  regionForRoute,
+} from '@/map/offlineTiles';
 import { formatDistance, formatElevation } from '@/tracking/stats';
 
 function boundsOfCoords(coords: number[][]): [number, number, number, number] | null {
@@ -29,15 +36,64 @@ export default function RouteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [route, setRoute] = useState<Route | null>(null);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+  const [downloadedPackId, setDownloadedPackId] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const cameraRef = useRef<CameraRef>(null);
+
+  const refreshDownloaded = useCallback(async () => {
+    if (!id) return;
+    try {
+      const regions = await listDownloadedRegions();
+      const pack = regions.find((r) => r.key === `route-${id}`);
+      setDownloadedPackId(pack?.id ?? null);
+    } catch {
+      setDownloadedPackId(null);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
     (async () => {
       setRoute(await getRoute(id));
       setWaypoints(await getRouteWaypoints(id));
+      await refreshDownloaded();
     })();
-  }, [id]);
+  }, [id, refreshDownloaded]);
+
+  const onDownload = useCallback(async () => {
+    if (!route) return;
+    const preset = regionForRoute(route.id, route.name, route.geometry.coordinates);
+    if (!preset) {
+      Alert.alert('Cannot download', 'This route has no map area to download.');
+      return;
+    }
+    setDownloading(true);
+    setProgress(0);
+    try {
+      await downloadRegion(preset, (p) => setProgress(p.percentage));
+      await refreshDownloaded();
+    } catch (err) {
+      Alert.alert('Download failed', err instanceof Error ? err.message : 'Unknown error.');
+    } finally {
+      setDownloading(false);
+    }
+  }, [route, refreshDownloaded]);
+
+  const onDelete = useCallback(() => {
+    if (!downloadedPackId) return;
+    Alert.alert('Delete offline map?', 'Remove the downloaded tiles for this route?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          await deleteRegion(downloadedPackId);
+          await refreshDownloaded();
+        },
+      },
+    ]);
+  }, [downloadedPackId, refreshDownloaded]);
 
   useEffect(() => {
     const bounds = route ? boundsOfCoords(route.geometry.coordinates) : null;
@@ -116,9 +172,39 @@ export default function RouteDetailScreen() {
             <StatCard label="Difficulty" value={route.difficulty ?? '--'} />
           </StatGrid>
 
+          {downloadedPackId ? (
+            <ThemedView type="backgroundElement" style={styles.downloadRow}>
+              <Ionicons name="checkmark-circle" size={22} color="#30A46C" />
+              <ThemedText style={styles.downloadLabel}>Offline map ready</ThemedText>
+              <Pressable onPress={onDelete} hitSlop={8} accessibilityRole="button">
+                <Ionicons name="trash" size={22} color="#E5484D" />
+              </Pressable>
+            </ThemedView>
+          ) : (
+            <Pressable
+              onPress={onDownload}
+              disabled={downloading}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.downloadButton, pressed && styles.pressed]}>
+              {downloading ? (
+                <>
+                  <ActivityIndicator color="#fff" />
+                  <ThemedText style={styles.downloadButtonText}>
+                    Downloading {Math.round(progress)}%
+                  </ThemedText>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="download-outline" size={20} color="#fff" />
+                  <ThemedText style={styles.downloadButtonText}>Download offline map</ThemedText>
+                </>
+              )}
+            </Pressable>
+          )}
+
           <ThemedText type="small" themeColor="textSecondary">
-            Download this area for offline use from Settings, then record your hike from the Map tab
-            to navigate this route.
+            Download this route&apos;s map area for offline use, then record your hike from the Map
+            tab to navigate it.
           </ThemedText>
         </View>
       </ScrollView>
@@ -132,4 +218,23 @@ const styles = StyleSheet.create({
   content: { paddingBottom: Spacing.six },
   mapWrap: { height: 320 },
   body: { padding: Spacing.four, gap: Spacing.three },
+  downloadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    backgroundColor: '#208AEF',
+    paddingVertical: Spacing.three,
+    borderRadius: Spacing.three,
+  },
+  pressed: { opacity: 0.85 },
+  downloadButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  downloadRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    padding: Spacing.three,
+    borderRadius: Spacing.three,
+  },
+  downloadLabel: { flex: 1, fontSize: 16, fontWeight: '600' },
 });

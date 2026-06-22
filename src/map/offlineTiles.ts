@@ -3,9 +3,9 @@ import { OfflineManager, type LngLatBounds } from '@maplibre/maplibre-react-nati
 import { OSM_STYLE_JSON } from '@/map/mapStyle';
 
 /**
- * Predefined regions a hiker can download for offline use. Bounds are
- * [west, south, east, north] in WGS84 degrees, covering popular Taiwan hiking
- * areas. Zoom is capped to keep pack sizes reasonable.
+ * A bounded tile pack to download for offline use. Bounds are
+ * [west, south, east, north] in WGS84 degrees; zoom is capped to keep pack
+ * sizes reasonable.
  */
 export interface OfflineRegionPreset {
   key: string;
@@ -15,36 +15,37 @@ export interface OfflineRegionPreset {
   maxZoom: number;
 }
 
-export const OFFLINE_PRESETS: OfflineRegionPreset[] = [
-  {
-    key: 'yushan',
-    name: 'Yushan (Jade Mountain)',
-    bounds: [120.88, 23.4, 121.06, 23.55],
-    minZoom: 10,
+/** Padding (degrees) added around a route's bounding box so the area isn't clipped at the edges. */
+const ROUTE_BBOX_PADDING_DEG = 0.01;
+
+/**
+ * Builds a downloadable tile pack covering a route's geometry, keyed `route-<id>`
+ * so the route detail screen can detect and delete it. Returns null when the
+ * route has no coordinates. `coords` are GeoJSON `[lon, lat]` pairs.
+ */
+export function regionForRoute(
+  id: string,
+  name: string,
+  coords: number[][],
+): OfflineRegionPreset | null {
+  if (coords.length === 0) return null;
+  let [west, south] = coords[0];
+  let [east, north] = coords[0];
+  for (const [lon, lat] of coords) {
+    west = Math.min(west, lon);
+    east = Math.max(east, lon);
+    south = Math.min(south, lat);
+    north = Math.max(north, lat);
+  }
+  const p = ROUTE_BBOX_PADDING_DEG;
+  return {
+    key: `route-${id}`,
+    name,
+    bounds: [west - p, south - p, east + p, north + p],
+    minZoom: 11,
     maxZoom: 15,
-  },
-  {
-    key: 'xueshan',
-    name: 'Xueshan (Snow Mountain)',
-    bounds: [121.18, 24.33, 121.32, 24.45],
-    minZoom: 10,
-    maxZoom: 15,
-  },
-  {
-    key: 'hehuanshan',
-    name: 'Hehuanshan',
-    bounds: [121.24, 24.11, 121.32, 24.2],
-    minZoom: 10,
-    maxZoom: 15,
-  },
-  {
-    key: 'yangmingshan',
-    name: 'Yangmingshan',
-    bounds: [121.5, 25.13, 121.61, 25.21],
-    minZoom: 10,
-    maxZoom: 15,
-  },
-];
+  };
+}
 
 export interface DownloadProgress {
   percentage: number;
