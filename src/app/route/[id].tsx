@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { GeoJSONSource, type CameraRef, Layer } from '@maplibre/maplibre-react-native';
+import { GeoJSONSource, type LngLatBounds, Layer } from '@maplibre/maplibre-react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { MapCanvas } from '@/components/map-canvas';
@@ -19,7 +19,7 @@ import {
 } from '@/map/offlineTiles';
 import { formatDistance, formatElevation } from '@/tracking/stats';
 
-function boundsOfCoords(coords: number[][]): [number, number, number, number] | null {
+function boundsOfCoords(coords: number[][]): LngLatBounds | null {
   if (coords.length === 0) return null;
   let [west, south] = coords[0];
   let [east, north] = coords[0];
@@ -39,7 +39,6 @@ export default function RouteDetailScreen() {
   const [downloadedPackId, setDownloadedPackId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const cameraRef = useRef<CameraRef>(null);
 
   const refreshDownloaded = useCallback(async () => {
     if (!id) return;
@@ -95,16 +94,6 @@ export default function RouteDetailScreen() {
     ]);
   }, [downloadedPackId, refreshDownloaded]);
 
-  useEffect(() => {
-    const bounds = route ? boundsOfCoords(route.geometry.coordinates) : null;
-    if (bounds && cameraRef.current) {
-      cameraRef.current.fitBounds([bounds[0], bounds[1], bounds[2], bounds[3]], {
-        padding: { top: 40, right: 40, bottom: 40, left: 40 },
-        duration: 600,
-      });
-    }
-  }, [route]);
-
   if (!route) {
     return (
       <ThemedView style={styles.center}>
@@ -118,6 +107,8 @@ export default function RouteDetailScreen() {
     properties: {},
     geometry: route.geometry,
   };
+
+  const bounds = boundsOfCoords(route.geometry.coordinates) ?? undefined;
 
   const waypointFeatures: GeoJSON.FeatureCollection = {
     type: 'FeatureCollection',
@@ -133,7 +124,7 @@ export default function RouteDetailScreen() {
       <Stack.Screen options={{ title: route.name }} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.mapWrap}>
-          <MapCanvas ref={cameraRef} showUser>
+          <MapCanvas bounds={bounds} showUser>
             <GeoJSONSource id="route-line" data={lineFeature}>
               <Layer
                 id="route-line-layer"
