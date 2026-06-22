@@ -1,7 +1,7 @@
 import { OfflineManager, type LngLatBounds } from '@maplibre/maplibre-react-native';
 import { File, Paths } from 'expo-file-system';
 
-import { OSM_STYLE_JSON } from '@/map/mapStyle';
+import { MAP_STYLE_JSON } from '@/map/mapStyle';
 
 /**
  * MapLibre's offline downloader takes a style *URL*, not an inline style object
@@ -17,7 +17,7 @@ function offlineStyleUri(): string {
     file.delete();
   }
   file.create();
-  file.write(OSM_STYLE_JSON);
+  file.write(MAP_STYLE_JSON);
   return file.uri;
 }
 

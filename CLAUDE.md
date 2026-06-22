@@ -46,7 +46,7 @@ GPS track recording spans three layers that must stay consistent. **SQLite is th
 
 ### Maps & offline tiles
 
-`src/map/mapStyle.ts` holds the MapLibre style (defaults to public OSM raster tiles — fine for dev, **not** for production/bulk download per OSM policy; swap in a licensed tile server for release) plus GeoJSON helpers (`pointsToLineString`, `lastCoordinate`). `src/map/offlineTiles.ts` wraps MapLibre's `OfflineManager` to download/list/delete bounded tile packs, with hard-coded Taiwan region presets (`OFFLINE_PRESETS`).
+`src/map/mapStyle.ts` holds the MapLibre style (MapTiler "Outdoor" raster tiles, keyed by the `EXPO_PUBLIC_MAPTILER_KEY` env var — see `.env.example`; MapTiler's terms permit bounded offline caching) plus GeoJSON helpers (`pointsToLineString`, `lastCoordinate`). `src/map/offlineTiles.ts` wraps MapLibre's `OfflineManager` to download/list/delete bounded tile packs; `regionForRoute` builds a per-route pack from the route's bounding box.
 
 ### Other modules
 

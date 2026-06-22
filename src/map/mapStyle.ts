@@ -3,37 +3,50 @@ import type { LngLat, StyleSpecification } from '@maplibre/maplibre-react-native
 import type { TrackPoint } from '@/db/types';
 
 /**
- * OpenStreetMap raster style. Free and requires no token, suitable for
- * development. For production, switch `tiles` to your own tile server or a
- * licensed provider — the public OSM tile servers forbid heavy/bulk use
- * (including large offline downloads).
+ * MapTiler API key, read from the `EXPO_PUBLIC_MAPTILER_KEY` env var (see
+ * `.env.example`). `EXPO_PUBLIC_*` vars are inlined into the JS bundle at build
+ * time. The key is therefore shipped in the client — restrict it by allowed
+ * origins / bundle id in the MapTiler dashboard rather than treating it as a
+ * secret. We deliberately avoid `expo.extra`/`Constants`, which freeze at native
+ * build time, so the value can change without a full native rebuild.
  */
-export const OSM_RASTER_STYLE: StyleSpecification = {
+const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY ?? '';
+
+if (!MAPTILER_KEY && __DEV__) {
+  console.warn(
+    '[map] EXPO_PUBLIC_MAPTILER_KEY is not set — map tiles will fail to load. ' +
+      'Copy .env.example to .env and add your MapTiler key.',
+  );
+}
+
+/**
+ * MapTiler "Outdoor" raster style: contour lines, trails, and peaks suited to
+ * hiking. Tiles are 256px and the key is appended as a query param. MapTiler's
+ * terms permit offline caching of bounded areas (unlike the public OSM servers),
+ * so the offline downloader can use this style directly.
+ */
+export const MAP_RASTER_STYLE: StyleSpecification = {
   version: 8,
   sources: {
-    osm: {
+    maptiler: {
       type: 'raster',
-      tiles: [
-        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      ],
+      tiles: [`https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`],
       tileSize: 256,
-      maxzoom: 19,
-      attribution: '© OpenStreetMap contributors',
+      maxzoom: 20,
+      attribution: '© MapTiler © OpenStreetMap contributors',
     },
   },
   layers: [
     {
-      id: 'osm',
+      id: 'maptiler',
       type: 'raster',
-      source: 'osm',
+      source: 'maptiler',
     },
   ],
 };
 
 /** Map style serialized for the offline pack downloader (expects a string). */
-export const OSM_STYLE_JSON = JSON.stringify(OSM_RASTER_STYLE);
+export const MAP_STYLE_JSON = JSON.stringify(MAP_RASTER_STYLE);
 
 /** Default camera position: centered on Taiwan. */
 export const TAIWAN_CENTER: LngLat = [120.96, 23.7];

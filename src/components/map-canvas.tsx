@@ -8,7 +8,7 @@ import {
 import { forwardRef } from 'react';
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { DEFAULT_ZOOM, OSM_RASTER_STYLE, TAIWAN_CENTER } from '@/map/mapStyle';
+import { DEFAULT_ZOOM, MAP_RASTER_STYLE, TAIWAN_CENTER } from '@/map/mapStyle';
 
 const BOUNDS_PADDING = { top: 40, right: 40, bottom: 40, left: 40 };
 
@@ -26,7 +26,7 @@ export interface MapCanvasProps {
 }
 
 /**
- * Base map surface: OSM raster tiles, a camera, and the user location dot.
+ * Base map surface: MapTiler Outdoor raster tiles, a camera, and the user location dot.
  * Overlay sources/layers (track polyline, waypoints) are passed as children.
  * The camera ref is forwarded so callers can recenter or fit bounds.
  */
@@ -35,7 +35,7 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
   ref,
 ) {
   return (
-    <MapLibreMap style={[styles.map, style]} mapStyle={OSM_RASTER_STYLE}>
+    <MapLibreMap style={[styles.map, style]} mapStyle={MAP_RASTER_STYLE}>
       {bounds ? (
         <Camera ref={ref} bounds={bounds} padding={BOUNDS_PADDING} duration={600} />
       ) : (
