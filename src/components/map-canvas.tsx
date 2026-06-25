@@ -38,6 +38,12 @@ export interface MapCanvasProps {
    * style), rotated by the GPS course (`coords.heading`).
    */
   showHeading?: boolean;
+  /**
+   * Navigation-style orientation: center on the user and rotate the map so the
+   * device compass heading points to the top of the screen. Overrides
+   * `bounds`/`centerCoordinate` while active.
+   */
+  headingUp?: boolean;
   /** Extra top offset for the zoom controls, e.g. to clear a safe-area inset or banner. */
   controlsTopInset?: number;
   children?: React.ReactNode;
@@ -57,6 +63,7 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
     bounds,
     showUser = true,
     showHeading = true,
+    headingUp = false,
     controlsTopInset = 0,
     children,
     style,
@@ -97,7 +104,9 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
         onRegionDidChange={(e) => {
           currentZoom.current = e.nativeEvent.zoom;
         }}>
-        {bounds && mapReady ? (
+        {headingUp ? (
+          <Camera ref={setCameraRef} trackUserLocation="heading" zoom={zoomLevel} duration={600} />
+        ) : bounds && mapReady ? (
           <Camera ref={setCameraRef} bounds={bounds} padding={BOUNDS_PADDING} duration={600} />
         ) : (
           <Camera

@@ -175,6 +175,7 @@ export default function MapScreen() {
         centerCoordinate={center}
         zoomLevel={isActive ? 15 : undefined}
         bounds={followBounds}
+        headingUp={isActive}
         controlsTopInset={insets.top + (followRoute ? 56 : 0)}>
         {routeLineFeature ? (
           <GeoJSONSource id="follow-route" data={routeLineFeature}>
