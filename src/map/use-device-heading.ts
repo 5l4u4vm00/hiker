@@ -24,6 +24,17 @@ export function useDeviceHeading(enabled = true): number | null {
 
     (async () => {
       try {
+        // Heading updates need foreground location permission. On a cold start
+        // the map may mount this hook before permission is granted; await it
+        // here (rather than firing watchHeadingAsync and silently failing) so
+        // the arrow appears as soon as access is allowed, not only later once
+        // some other screen has prompted.
+        const existing = await Location.getForegroundPermissionsAsync();
+        const granted = existing.granted
+          ? true
+          : (await Location.requestForegroundPermissionsAsync()).granted;
+        if (cancelled || !granted) return;
+
         const sub = await Location.watchHeadingAsync((reading) => {
           if (cancelled) return;
           const deg = reading.trueHeading >= 0 ? reading.trueHeading : reading.magHeading;
