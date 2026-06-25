@@ -10,6 +10,7 @@ import { StatCard, StatGrid } from '@/components/stat-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { saveOverpassRoute } from '@/data/routeService';
 import { getRoute, getRouteWaypoints } from '@/db/routes';
 import type { Route, Waypoint } from '@/db/types';
 import { boundsOfCoords } from '@/map/mapStyle';
@@ -20,12 +21,16 @@ import {
   regionForRoute,
 } from '@/map/offlineTiles';
 import { useFollowStore } from '@/state/followStore';
+import { useRoutePreviewStore } from '@/state/routePreviewStore';
 import { formatDistance, formatElevation } from '@/tracking/stats';
 
 export default function RouteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [route, setRoute] = useState<Route | null>(null);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+  // Whether this route is persisted in SQLite. A preview (opened from an online
+  // search) is not saved until the user downloads its map or follows it.
+  const [saved, setSaved] = useState(false);
   const [downloadedPackId, setDownloadedPackId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -44,11 +49,34 @@ export default function RouteDetailScreen() {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      setRoute(await getRoute(id));
-      setWaypoints(await getRouteWaypoints(id));
+      const dbRoute = await getRoute(id);
+      if (dbRoute) {
+        setRoute(dbRoute);
+        setSaved(true);
+        setWaypoints(await getRouteWaypoints(id));
+      } else {
+        // Not in SQLite — fall back to the transient online preview.
+        const preview = useRoutePreviewStore.getState().preview;
+        if (preview && preview.key === id) {
+          const { key, ...input } = preview;
+          setRoute({ id: key, ...input });
+          setSaved(false);
+          setWaypoints([]);
+        }
+      }
       await refreshDownloaded();
     })();
   }, [id, refreshDownloaded]);
+
+  // Persist an online preview to SQLite the first time the user commits to it.
+  const ensureSaved = useCallback(async () => {
+    if (saved) return;
+    const preview = useRoutePreviewStore.getState().preview;
+    if (preview && preview.key === id) {
+      await saveOverpassRoute(preview);
+      setSaved(true);
+    }
+  }, [saved, id]);
 
   const onDownload = useCallback(async () => {
     if (!route) return;
@@ -60,6 +88,7 @@ export default function RouteDetailScreen() {
     setDownloading(true);
     setProgress(0);
     try {
+      await ensureSaved();
       await downloadRegion(preset, (p) => setProgress(p.percentage));
       await refreshDownloaded();
     } catch (err) {
@@ -67,13 +96,15 @@ export default function RouteDetailScreen() {
     } finally {
       setDownloading(false);
     }
-  }, [route, refreshDownloaded]);
+  }, [route, ensureSaved, refreshDownloaded]);
 
-  const onFollow = useCallback(() => {
+  const onFollow = useCallback(async () => {
     if (!route) return;
+    // The Map screen loads the followed route from SQLite by id, so persist first.
+    await ensureSaved();
     useFollowStore.getState().follow(route.id);
     router.navigate('/(tabs)');
-  }, [route]);
+  }, [route, ensureSaved]);
 
   const onDelete = useCallback(() => {
     if (!downloadedPackId) return;

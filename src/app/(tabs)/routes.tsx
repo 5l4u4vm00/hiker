@@ -24,10 +24,10 @@ import {
   type OverpassResult,
   type OverpassRouteResult,
 } from '@/data/overpass';
-import { saveOverpassRoute } from '@/data/routeService';
 import { listRegions, queryRoutes } from '@/db/routes';
 import type { Route } from '@/db/types';
 import { importGpxFromPicker } from '@/gpx/import';
+import { useRoutePreviewStore } from '@/state/routePreviewStore';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentCoordinates } from '@/safety/sos';
 import { formatDistance, formatElevation, nearestPointDistanceM } from '@/tracking/stats';
@@ -188,19 +188,12 @@ export default function RoutesScreen() {
     }
   }, [reload, query, region]);
 
-  // Persist a live result before navigating — the detail screen reads by id from SQLite.
-  const onOpenLive = useCallback(
-    async (result: OverpassRouteResult) => {
-      try {
-        await saveOverpassRoute(result);
-        await reload(query, region);
-        router.push(`/route/${result.key}`);
-      } catch (err) {
-        Alert.alert('Could not open route', err instanceof Error ? err.message : 'Unknown error.');
-      }
-    },
-    [reload, query, region],
-  );
+  // Preview a live result without saving it — the detail screen renders the
+  // in-memory preview and only persists it on download or follow.
+  const onOpenLive = useCallback((result: OverpassRouteResult) => {
+    useRoutePreviewStore.getState().setPreview(result);
+    router.push(`/route/${result.key}`);
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
