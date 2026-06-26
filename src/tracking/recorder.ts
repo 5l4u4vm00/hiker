@@ -32,6 +32,25 @@ const LOCATION_OPTIONS: Location.LocationTaskOptions = {
   },
 };
 
+/**
+ * Best-effort current location for centering the map when the screen opens.
+ * Requests foreground permission (so the user dot can also show), then returns
+ * the last known fix for an instant center, falling back to a fresh fix.
+ * Returns null if permission is denied or no fix is available.
+ */
+export async function getInitialCoordinate(): Promise<[number, number] | null> {
+  const fg = await Location.requestForegroundPermissionsAsync();
+  if (!fg.granted) return null;
+  const last = await Location.getLastKnownPositionAsync();
+  const pos =
+    last ??
+    (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).catch(
+      () => null,
+    ));
+  if (!pos) return null;
+  return [pos.coords.longitude, pos.coords.latitude];
+}
+
 export async function requestPermissions(): Promise<PermissionResult> {
   const fg = await Location.requestForegroundPermissionsAsync();
   if (!fg.granted) {

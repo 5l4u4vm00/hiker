@@ -19,6 +19,7 @@ import { useFollowStore } from '@/state/followStore';
 import { useRecordingStore } from '@/state/recordingStore';
 import {
   discardRecording,
+  getInitialCoordinate,
   pauseRecording,
   refreshLiveStats,
   resumeRecording,
@@ -39,6 +40,7 @@ export default function MapScreen() {
   const [followWaypoints, setFollowWaypoints] = useState<Waypoint[]>([]);
   const [elapsed, setElapsed] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [initialCenter, setInitialCenter] = useState<[number, number] | null>(null);
 
   const isActive = status === 'recording' || status === 'paused';
 
@@ -66,6 +68,19 @@ export default function MapScreen() {
     };
   }, [followRouteId]);
 
+  // On entry, center the map on the user's current location (instead of the
+  // Taiwan-wide default) once a fix is available.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const coord = await getInitialCoordinate();
+      if (!cancelled && coord) setInitialCenter(coord);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Poll persisted points + stats while a recording is active.
   useEffect(() => {
     if (!trackId || !isActive) return;
@@ -91,7 +106,9 @@ export default function MapScreen() {
   }, [status, startedAt]);
 
   const last = lastCoordinate(points);
-  const center = isActive ? (last ?? undefined) : undefined;
+  // While recording, follow the latest point; otherwise (and when not framing a
+  // route) center on the user's current location.
+  const center = isActive ? (last ?? undefined) : (initialCenter ?? undefined);
 
   // Before recording, frame the whole route to follow; once recording, the
   // camera tracks the user (centerCoordinate) so the route line scrolls past.
@@ -173,7 +190,7 @@ export default function MapScreen() {
     <View style={styles.container}>
       <MapCanvas
         centerCoordinate={center}
-        zoomLevel={isActive ? 15 : undefined}
+        zoomLevel={isActive ? 15 : initialCenter ? 14 : undefined}
         bounds={followBounds}
         headingUp={isActive}
         controlsTopInset={insets.top + (followRoute ? 56 : 0)}>
