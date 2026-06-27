@@ -6,11 +6,13 @@ import {
   Map as MapLibreMap,
   UserLocation,
 } from '@maplibre/maplibre-react-native';
-import { forwardRef, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { CompassBadge } from '@/components/compass-badge';
 import { UserLocationHeading } from '@/components/user-location-heading';
 import { DEFAULT_ZOOM, MAP_RASTER_STYLE, TAIWAN_CENTER } from '@/map/mapStyle';
+import { useDeviceHeading } from '@/map/use-device-heading';
 
 const BOUNDS_PADDING = { top: 40, right: 40, bottom: 40, left: 40 };
 const MIN_ZOOM = 1;
@@ -46,6 +48,8 @@ export interface MapCanvasProps {
   headingUp?: boolean;
   /** Extra top offset for the zoom controls, e.g. to clear a safe-area inset or banner. */
   controlsTopInset?: number;
+  /** Show a north-pointing compass above the zoom controls (driven by the device heading). */
+  showCompass?: boolean;
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
@@ -65,11 +69,13 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
     showHeading = true,
     headingUp = false,
     controlsTopInset = 0,
+    showCompass = false,
     children,
     style,
   },
   ref,
 ) {
+  const heading = useDeviceHeading(showCompass || headingUp);
   // MapLibre throws "padding is greater than map's height or width" if a bounds
   // fit runs before the map view has been measured (e.g. during a tab
   // transition). Gate the bounds camera on the map having finished loading,
@@ -95,6 +101,27 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
     cameraRef.current?.zoomTo(next, { duration: 200 });
   };
 
+  // In heading-up (recording) mode the camera follows the user via declarative
+  // `center`/`bearing` with no `zoom` prop, so manual zoom persists across the
+  // frequent position/heading updates. On entry, zoom in *to the current
+  // location* once: a single combined move to `centerCoordinate` at the
+  // recording zoom (gated on the map being ready so the camera ref is usable).
+  const headingUpZoomed = useRef(false);
+  useEffect(() => {
+    if (!headingUp) {
+      headingUpZoomed.current = false;
+      return;
+    }
+    if (!mapReady || headingUpZoomed.current) return;
+    headingUpZoomed.current = true;
+    currentZoom.current = zoomLevel;
+    if (centerCoordinate) {
+      cameraRef.current?.easeTo({ center: centerCoordinate, zoom: zoomLevel, duration: 600 });
+    } else {
+      cameraRef.current?.zoomTo(zoomLevel, { duration: 600 });
+    }
+  }, [headingUp, mapReady, zoomLevel, centerCoordinate]);
+
   return (
     <View style={[styles.container, style]}>
       <MapLibreMap
@@ -105,7 +132,11 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
           currentZoom.current = e.nativeEvent.zoom;
         }}>
         {headingUp ? (
-          <Camera ref={setCameraRef} trackUserLocation="heading" zoom={zoomLevel} duration={600} />
+          // Navigation-style follow: re-center on the live coordinate and rotate
+          // the map to the device compass heading. `center` may be undefined for
+          // a moment at recording start — leave it so the camera holds its
+          // current (already user-centered) position rather than jumping away.
+          <Camera ref={setCameraRef} center={centerCoordinate} bearing={heading ?? 0} duration={400} />
         ) : bounds && mapReady ? (
           <Camera ref={setCameraRef} bounds={bounds} padding={BOUNDS_PADDING} duration={600} />
         ) : (
@@ -120,24 +151,27 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
         {children}
       </MapLibreMap>
 
-      <View style={[styles.zoomControls, { top: controlsTopInset + 12 }]}>
-        <Pressable
-          onPress={() => zoomBy(ZOOM_STEP)}
-          style={styles.zoomButton}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel="Zoom in">
-          <Ionicons name="add" size={24} color="#1F2933" />
-        </Pressable>
-        <View style={styles.zoomDivider} />
-        <Pressable
-          onPress={() => zoomBy(-ZOOM_STEP)}
-          style={styles.zoomButton}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel="Zoom out">
-          <Ionicons name="remove" size={24} color="#1F2933" />
-        </Pressable>
+      <View style={[styles.topRightControls, { top: controlsTopInset + 12 }]}>
+        {showCompass && heading != null ? <CompassBadge heading={heading} /> : null}
+        <View style={styles.zoomControls}>
+          <Pressable
+            onPress={() => zoomBy(ZOOM_STEP)}
+            style={styles.zoomButton}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Zoom in">
+            <Ionicons name="add" size={24} color="#1F2933" />
+          </Pressable>
+          <View style={styles.zoomDivider} />
+          <Pressable
+            onPress={() => zoomBy(-ZOOM_STEP)}
+            style={styles.zoomButton}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Zoom out">
+            <Ionicons name="remove" size={24} color="#1F2933" />
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -150,9 +184,13 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  zoomControls: {
+  topRightControls: {
     position: 'absolute',
     right: 12,
+    alignItems: 'center',
+    gap: 12,
+  },
+  zoomControls: {
     backgroundColor: '#ffffff',
     borderRadius: 10,
     overflow: 'hidden',

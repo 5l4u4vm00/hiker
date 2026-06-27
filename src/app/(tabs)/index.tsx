@@ -3,6 +3,8 @@ import { GeoJSONSource, type LngLatBounds, Layer } from '@maplibre/maplibre-reac
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { FadeIn, FadeOut, LinearTransition, runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MapCanvas } from '@/components/map-canvas';
@@ -14,9 +16,12 @@ import { Spacing } from '@/constants/theme';
 import { getRoute, getRouteWaypoints } from '@/db/routes';
 import { getTrackPoints } from '@/db/tracks';
 import type { Route, TrackPoint, Waypoint } from '@/db/types';
-import { boundsOfCoords, lastCoordinate, pointsToLineString } from '@/map/mapStyle';
+import { useTheme } from '@/hooks/use-theme';
+import { boundsOfCoords, formatCoordinate, lastCoordinate, pointsToLineString } from '@/map/mapStyle';
+import { useCurrentLocation } from '@/map/use-current-location';
 import { useFollowStore } from '@/state/followStore';
 import { useRecordingStore } from '@/state/recordingStore';
+import { daylight, formatClock } from '@/sun/daylight';
 import {
   discardRecording,
   getInitialCoordinate,
@@ -26,13 +31,23 @@ import {
   startRecording,
   stopRecording,
 } from '@/tracking/recorder';
-import { formatDistance, formatDuration, formatElevation, formatPace } from '@/tracking/stats';
+import {
+  formatDistance,
+  formatDuration,
+  formatDurationShort,
+  formatElevation,
+  formatGpsQuality,
+  formatSpeed,
+  WARNING_COLOR,
+} from '@/tracking/stats';
+import { weatherIcon, weatherLabel } from '@/weather/weatherCodes';
 
 const POLL_INTERVAL_MS = 3000;
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
-  const { trackId, status, startedAt, stats } = useRecordingStore();
+  const theme = useTheme();
+  const { trackId, status, startedAt, stats, live } = useRecordingStore();
   const followRouteId = useFollowStore((s) => s.routeId);
   const clearFollow = useFollowStore((s) => s.clear);
   const [points, setPoints] = useState<TrackPoint[]>([]);
@@ -41,6 +56,7 @@ export default function MapScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [busy, setBusy] = useState(false);
   const [initialCenter, setInitialCenter] = useState<[number, number] | null>(null);
+  const [statsCollapsed, setStatsCollapsed] = useState(true);
 
   const isActive = status === 'recording' || status === 'paused';
 
@@ -106,9 +122,14 @@ export default function MapScreen() {
   }, [status, startedAt]);
 
   const last = lastCoordinate(points);
-  // While recording, follow the latest point; otherwise (and when not framing a
-  // route) center on the user's current location.
-  const center = isActive ? (last ?? undefined) : (initialCenter ?? undefined);
+  const liveCoord: [number, number] | null =
+    live.lat != null && live.lon != null ? [live.lon, live.lat] : null;
+  // While recording, follow the latest fix (prefer the persisted point, falling
+  // back to the live sample, then the entry center); otherwise (and when not
+  // framing a route) center on the user's current location.
+  const center = isActive
+    ? (last ?? liveCoord ?? initialCenter ?? undefined)
+    : (initialCenter ?? undefined);
 
   // Before recording, frame the whole route to follow; once recording, the
   // camera tracks the user (centerCoordinate) so the route line scrolls past.
@@ -173,6 +194,39 @@ export default function MapScreen() {
 
   const liveDuration = status === 'recording' ? Math.max(elapsed, stats.durationS) : stats.durationS;
 
+  // Current coordinates for the top-left readout. While recording the store
+  // already holds fresh coords, so the standalone watch only runs otherwise.
+  const watched = useCurrentLocation(!isActive);
+  const currentCoord: [number, number] | null =
+    isActive && live.lat != null && live.lon != null ? [live.lon, live.lat] : watched;
+
+  // Sunset / remaining daylight from the latest fix (falling back to the
+  // initial center before the first point arrives). `elapsed` ticking each
+  // second keeps the countdown fresh.
+  const sunLat = live.lat ?? initialCenter?.[1] ?? null;
+  const sunLon = live.lon ?? initialCenter?.[0] ?? null;
+  const sun = sunLat != null && sunLon != null ? daylight(sunLat, sunLon) : null;
+  const gps = formatGpsQuality(live.accuracyM);
+
+  // Drag the panel handle down to collapse the stats, up to expand them; a
+  // plain tap toggles. Both are purely local UI state and never touch the
+  // recorder, so recording continues uninterrupted while the panel opens.
+  const DRAG_THRESHOLD = 24;
+  const toggleStats = useCallback(() => setStatsCollapsed((c) => !c), []);
+  const panelDrag = Gesture.Pan().onUpdate((e) => {
+    'worklet';
+    // Respond while dragging (not only on release) so the handle feels
+    // draggable; the panel's LinearTransition animates the height change.
+    // Re-setting the same value is a no-op in React, so this is cheap.
+    if (e.translationY > DRAG_THRESHOLD) runOnJS(setStatsCollapsed)(true);
+    else if (e.translationY < -DRAG_THRESHOLD) runOnJS(setStatsCollapsed)(false);
+  });
+  const panelTap = Gesture.Tap().onEnd(() => {
+    'worklet';
+    runOnJS(toggleStats)();
+  });
+  const panelGesture = Gesture.Exclusive(panelDrag, panelTap);
+
   const routeLineFeature: GeoJSON.Feature<GeoJSON.LineString> | null = followRoute
     ? { type: 'Feature', properties: {}, geometry: followRoute.geometry }
     : null;
@@ -193,6 +247,7 @@ export default function MapScreen() {
         zoomLevel={isActive ? 15 : initialCenter ? 14 : undefined}
         bounds={followBounds}
         headingUp={isActive}
+        showCompass
         controlsTopInset={insets.top + (followRoute ? 56 : 0)}>
         {routeLineFeature ? (
           <GeoJSONSource id="follow-route" data={routeLineFeature}>
@@ -230,6 +285,15 @@ export default function MapScreen() {
         ) : null}
       </MapCanvas>
 
+      {currentCoord ? (
+        <ThemedView
+          type="backgroundElement"
+          style={[styles.coordChip, { top: insets.top + (followRoute ? 56 : 0) + 12 }]}>
+          <Ionicons name="location" size={14} color="#208AEF" />
+          <ThemedText type="small">{formatCoordinate(currentCoord[1], currentCoord[0])}</ThemedText>
+        </ThemedView>
+      ) : null}
+
       {followRoute ? (
         <ThemedView
           type="backgroundElement"
@@ -254,13 +318,68 @@ export default function MapScreen() {
       ) : null}
 
       {isActive ? (
-        <ThemedView style={[styles.panel, { paddingBottom: insets.bottom + Spacing.three }]}>
-          <StatGrid>
-            <StatCard label="Distance" value={formatDistance(stats.distanceM)} />
-            <StatCard label="Duration" value={formatDuration(liveDuration)} />
-            <StatCard label="Ascent" value={formatElevation(stats.ascentM)} />
-            <StatCard label="Pace" value={formatPace(stats.distanceM, liveDuration)} />
-          </StatGrid>
+        <Animated.View
+          layout={LinearTransition.duration(220)}
+          style={[
+            styles.panel,
+            { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.three },
+          ]}>
+          <GestureDetector gesture={panelGesture}>
+            <View
+              style={styles.panelHandle}
+              accessibilityRole="adjustable"
+              accessibilityLabel={
+                statsCollapsed ? 'Tap or drag up to expand stats' : 'Tap or drag down to collapse stats'
+              }>
+              <View style={styles.grabber} />
+            </View>
+          </GestureDetector>
+          {statsCollapsed ? (
+            <StatGrid>
+              <StatCard compact label="Distance" value={formatDistance(stats.distanceM)} />
+              <StatCard compact label="Duration" value={formatDuration(liveDuration)} />
+              <StatCard compact label="Altitude" value={formatElevation(live.altM)} />
+            </StatGrid>
+          ) : (
+            <Animated.View
+              entering={FadeIn.duration(150)}
+              exiting={FadeOut.duration(120)}
+              style={styles.statsBlock}>
+              <StatGrid>
+                <StatCard label="Distance" value={formatDistance(stats.distanceM)} />
+                <StatCard label="Duration" value={formatDuration(liveDuration)} />
+                <StatCard label="Altitude" value={formatElevation(live.altM)} />
+                <StatCard label="Speed" value={formatSpeed(live.speedMps)} />
+                <StatCard label="Ascent" value={formatElevation(stats.ascentM)} />
+                <StatCard
+                  label={sun ? `Sunset ${formatClock(sun.sunsetMs)}` : 'Daylight'}
+                  value={
+                    sun
+                      ? sun.remainingMs > 0
+                        ? `${formatDurationShort(sun.remainingMs / 1000)} left`
+                        : 'After sunset'
+                      : '--'
+                  }
+                  tint={
+                    sun && sun.remainingMs <= 0
+                      ? WARNING_COLOR
+                      : sun?.isLow
+                        ? WARNING_COLOR
+                        : undefined
+                  }
+                />
+              </StatGrid>
+              <StatGrid>
+                <StatCard compact icon="locate" label="GPS" value={gps.label} tint={gps.tint} />
+                <StatCard
+                  compact
+                  icon={live.weatherCode != null ? weatherIcon(live.weatherCode) : 'cloud-offline'}
+                  label={live.weatherCode != null ? weatherLabel(live.weatherCode) : 'Weather'}
+                  value={live.weatherTempC != null ? `${Math.round(live.weatherTempC)}°C` : '--'}
+                />
+              </StatGrid>
+            </Animated.View>
+          )}
           <View style={styles.row}>
             {status === 'recording' ? (
               <PrimaryButton
@@ -285,7 +404,7 @@ export default function MapScreen() {
               style={styles.flex}
             />
           </View>
-        </ThemedView>
+        </Animated.View>
       ) : (
         <Pressable
           accessibilityRole="button"
@@ -333,6 +452,21 @@ const styles = StyleSheet.create({
   },
   followBannerText: { flex: 1 },
   followBannerName: { fontSize: 16, fontWeight: '600' },
+  coordChip: {
+    position: 'absolute',
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.two,
+    borderRadius: Spacing.three,
+    shadowColor: '#000000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
   panel: {
     position: 'absolute',
     left: 0,
@@ -345,6 +479,20 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', gap: Spacing.two },
   flex: { flex: 1 },
+  panelHandle: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.two,
+    paddingTop: Spacing.one,
+    paddingBottom: Spacing.two,
+  },
+  grabber: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#9CA3AF',
+  },
+  statsBlock: { gap: Spacing.three },
   fab: {
     position: 'absolute',
     right: Spacing.four,

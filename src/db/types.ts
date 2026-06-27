@@ -18,6 +18,12 @@ export interface Track {
   durationS: number;
   maxAlt: number | null;
   status: TrackStatus;
+  /** Air temperature (°C) captured at the start of the hike, if available. */
+  weatherTempC: number | null;
+  /** WMO weather code captured at the start of the hike, if available. */
+  weatherCode: number | null;
+  /** When the weather snapshot was fetched (epoch ms), if available. */
+  weatherFetchedAt: number | null;
 }
 
 export interface TrackPoint {

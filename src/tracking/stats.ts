@@ -5,6 +5,12 @@ const EARTH_RADIUS_M = 6371000;
 /** Minimum elevation change (m) counted toward ascent/descent to filter GPS noise. */
 const ELEVATION_THRESHOLD_M = 3;
 
+/** Minimum segment speed (m/s, ~1.1 km/h) for time to count as "moving". */
+const MOVING_SPEED_THRESHOLD_MPS = 0.3;
+
+/** Segments longer than this (s) are treated as a stop/signal loss, not motion. */
+const MAX_SEGMENT_GAP_S = 120;
+
 export interface LatLon {
   lat: number;
   lon: number;
@@ -46,6 +52,10 @@ export interface ComputedStats {
   descentM: number;
   maxAlt: number | null;
   durationS: number;
+  /** Time spent actually moving (s), excluding stops and long signal gaps. */
+  movingTimeS: number;
+  /** Fastest segment speed observed (m/s), or null if not derivable. */
+  maxSpeed: number | null;
 }
 
 /**
@@ -54,7 +64,15 @@ export interface ComputedStats {
  */
 export function computeStats(points: TrackPoint[]): ComputedStats {
   if (points.length === 0) {
-    return { distanceM: 0, ascentM: 0, descentM: 0, maxAlt: null, durationS: 0 };
+    return {
+      distanceM: 0,
+      ascentM: 0,
+      descentM: 0,
+      maxAlt: null,
+      durationS: 0,
+      movingTimeS: 0,
+      maxSpeed: null,
+    };
   }
 
   let distanceM = 0;
@@ -62,11 +80,24 @@ export function computeStats(points: TrackPoint[]): ComputedStats {
   let descentM = 0;
   let maxAlt: number | null = null;
   let refAlt: number | null = null;
+  let movingTimeS = 0;
+  let maxSpeed: number | null = null;
 
   for (let i = 0; i < points.length; i++) {
     const p = points[i];
     if (i > 0) {
-      distanceM += haversine(points[i - 1], p);
+      const segDist = haversine(points[i - 1], p);
+      distanceM += segDist;
+      const segDt = (p.recordedAt - points[i - 1].recordedAt) / 1000;
+      if (segDt > 0 && segDt <= MAX_SEGMENT_GAP_S) {
+        const segSpeed = segDist / segDt;
+        if (segSpeed >= MOVING_SPEED_THRESHOLD_MPS) {
+          movingTimeS += segDt;
+        }
+        if (segDt >= 1) {
+          maxSpeed = maxSpeed == null ? segSpeed : Math.max(maxSpeed, segSpeed);
+        }
+      }
     }
     if (p.alt != null) {
       maxAlt = maxAlt == null ? p.alt : Math.max(maxAlt, p.alt);
@@ -90,7 +121,15 @@ export function computeStats(points: TrackPoint[]): ComputedStats {
     Math.round((points[points.length - 1].recordedAt - points[0].recordedAt) / 1000),
   );
 
-  return { distanceM, ascentM, descentM, maxAlt, durationS };
+  return {
+    distanceM,
+    ascentM,
+    descentM,
+    maxAlt,
+    durationS,
+    movingTimeS: Math.min(durationS, Math.round(movingTimeS)),
+    maxSpeed,
+  };
 }
 
 export function formatDistance(meters: number): string {
@@ -118,6 +157,54 @@ export function formatPace(distanceM: number, durationS: number): string {
   const m = Math.floor(paceSecPerKm / 60);
   const s = Math.round(paceSecPerKm % 60);
   return `${m}:${String(s).padStart(2, '0')} /km`;
+}
+
+/** Speed in km/h, formatted as `X.X km/h`. */
+export function formatSpeed(mps: number | null): string {
+  if (mps == null || !Number.isFinite(mps) || mps < 0) return '--';
+  return `${(mps * 3.6).toFixed(1)} km/h`;
+}
+
+const CARDINALS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
+
+/** 8-point cardinal direction for a heading in degrees clockwise from north. */
+export function cardinal(deg: number): string {
+  const i = Math.round((((deg % 360) + 360) % 360) / 45) % 8;
+  return CARDINALS[i];
+}
+
+/** Heading formatted as `NE 45°`, or `--` if unavailable. */
+export function formatHeading(deg: number | null): string {
+  if (deg == null || !Number.isFinite(deg) || deg < 0) return '--';
+  return `${cardinal(deg)} ${Math.round(deg)}°`;
+}
+
+/** Warning color shared with the danger/alert UI. */
+export const WARNING_COLOR = '#E5484D';
+
+export interface GpsQuality {
+  label: string;
+  tint?: string;
+}
+
+/** Maps GPS horizontal accuracy (m) to a Good/Fair/Poor quality label. */
+export function formatGpsQuality(accuracyM: number | null): GpsQuality {
+  if (accuracyM == null || !Number.isFinite(accuracyM) || accuracyM < 0) {
+    return { label: '--' };
+  }
+  if (accuracyM <= 10) return { label: 'Good' };
+  if (accuracyM <= 25) return { label: 'Fair' };
+  return { label: 'Poor', tint: WARNING_COLOR };
+}
+
+/** Compact duration as `Xh Ym`, `Ym`, or `<1m` for short spans. */
+export function formatDurationShort(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m`;
+  return '<1m';
 }
 
 export function formatDate(epochMs: number): string {

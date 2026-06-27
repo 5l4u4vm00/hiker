@@ -12,6 +12,9 @@ interface TrackRow {
   duration_s: number;
   max_alt: number | null;
   status: string;
+  weather_temp_c: number | null;
+  weather_code: number | null;
+  weather_fetched_at: number | null;
 }
 
 interface TrackPointRow {
@@ -37,6 +40,9 @@ function mapTrack(row: TrackRow): Track {
     durationS: row.duration_s,
     maxAlt: row.max_alt,
     status: row.status as TrackStatus,
+    weatherTempC: row.weather_temp_c,
+    weatherCode: row.weather_code,
+    weatherFetchedAt: row.weather_fetched_at,
   };
 }
 
@@ -75,6 +81,9 @@ export async function createTrack(name: string): Promise<Track> {
     durationS: 0,
     maxAlt: null,
     status: 'recording',
+    weatherTempC: null,
+    weatherCode: null,
+    weatherFetchedAt: null,
   };
 }
 
@@ -135,6 +144,21 @@ export async function finishTrack(id: string, stats: TrackStats): Promise<void> 
     stats.descentM,
     stats.durationS,
     stats.maxAlt,
+    id,
+  );
+}
+
+/** Persists a weather snapshot onto a track (fetched at recording start). */
+export async function updateTrackWeather(
+  id: string,
+  weather: { tempC: number; code: number; fetchedAt: number },
+): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'UPDATE tracks SET weather_temp_c = ?, weather_code = ?, weather_fetched_at = ? WHERE id = ?',
+    weather.tempC,
+    weather.code,
+    weather.fetchedAt,
     id,
   );
 }

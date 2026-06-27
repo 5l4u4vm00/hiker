@@ -76,10 +76,36 @@ CREATE TABLE IF NOT EXISTS emergency_contacts (
 );
 `;
 
+/**
+ * Adds any missing columns to an existing table. The MVP has no migration
+ * framework, so this fills the gap for additive schema changes: existing
+ * installs gain the new columns (back-filled NULL), and it is idempotent
+ * because each column is only added when absent. Table and column names are
+ * hardcoded constants, so interpolating them carries no injection risk.
+ */
+async function ensureColumns(
+  db: SQLite.SQLiteDatabase,
+  table: string,
+  columns: { name: string; ddl: string }[],
+): Promise<void> {
+  const existing = await db.getAllAsync<{ name: string }>(`PRAGMA table_info(${table})`);
+  const have = new Set(existing.map((c) => c.name));
+  for (const column of columns) {
+    if (!have.has(column.name)) {
+      await db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${column.ddl}`);
+    }
+  }
+}
+
 async function open(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync('hiker.db');
   await db.execAsync('PRAGMA foreign_keys = ON;');
   await db.execAsync(SCHEMA);
+  await ensureColumns(db, 'tracks', [
+    { name: 'weather_temp_c', ddl: 'weather_temp_c REAL' },
+    { name: 'weather_code', ddl: 'weather_code INTEGER' },
+    { name: 'weather_fetched_at', ddl: 'weather_fetched_at INTEGER' },
+  ]);
   return db;
 }
 

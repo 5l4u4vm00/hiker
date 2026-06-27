@@ -7,10 +7,13 @@ import {
   getActiveTrack,
   getTrackPoints,
   setTrackStatus,
+  updateTrackWeather,
 } from '@/db/tracks';
+import type { TrackPoint } from '@/db/types';
 import { useRecordingStore } from '@/state/recordingStore';
 import { LOCATION_TASK } from '@/tracking/locationTask';
 import { computeStats } from '@/tracking/stats';
+import { fetchWeather } from '@/weather/openMeteo';
 
 export interface PermissionResult {
   foreground: boolean;
@@ -80,6 +83,42 @@ async function stopUpdates(): Promise<void> {
  * Starts a new hike recording. Returns the new track id, or null if location
  * permission was denied.
  */
+/** Pushes the latest point's live values (altitude, speed, accuracy) to the store. */
+function setLiveFromLastPoint(points: TrackPoint[]): void {
+  const last = points[points.length - 1];
+  if (!last) return;
+  useRecordingStore.getState().setLive({
+    altM: last.alt,
+    speedMps: last.speed,
+    accuracyM: last.accuracy,
+    lat: last.lat,
+    lon: last.lon,
+    recordedAt: last.recordedAt,
+  });
+}
+
+/**
+ * Fetches a one-time weather snapshot for the hike start and stores it on the
+ * track and in the live state. Fire-and-forget: best-effort, never blocks or
+ * throws, and silently no-ops offline.
+ */
+async function captureStartWeather(trackId: string): Promise<void> {
+  const coord = await getInitialCoordinate();
+  if (!coord) return;
+  const [lon, lat] = coord;
+  const weather = await fetchWeather(lat, lon);
+  if (!weather) return;
+  // The hike may already be finished/discarded by the time this resolves; the
+  // UPDATE simply matches no rows in that case, which is harmless.
+  await updateTrackWeather(trackId, weather);
+  if (useRecordingStore.getState().trackId === trackId) {
+    useRecordingStore.getState().setLive({
+      weatherTempC: weather.tempC,
+      weatherCode: weather.code,
+    });
+  }
+}
+
 export async function startRecording(name: string): Promise<string | null> {
   const perms = await requestPermissions();
   if (!perms.foreground) return null;
@@ -87,6 +126,7 @@ export async function startRecording(name: string): Promise<string | null> {
   const track = await createTrack(name);
   useRecordingStore.getState().begin(track.id, track.startedAt);
   await startUpdates();
+  void captureStartWeather(track.id);
   return track.id;
 }
 
@@ -140,6 +180,10 @@ export async function restoreRecording(): Promise<void> {
   store.setStatus(active.status === 'paused' ? 'paused' : 'recording');
   const points = await getTrackPoints(active.id);
   store.setStats(computeStats(points));
+  setLiveFromLastPoint(points);
+  if (active.weatherTempC != null && active.weatherCode != null) {
+    store.setLive({ weatherTempC: active.weatherTempC, weatherCode: active.weatherCode });
+  }
   if (active.status === 'recording') {
     await startUpdates();
   }
@@ -149,4 +193,5 @@ export async function restoreRecording(): Promise<void> {
 export async function refreshLiveStats(trackId: string): Promise<void> {
   const points = await getTrackPoints(trackId);
   useRecordingStore.getState().setStats(computeStats(points));
+  setLiveFromLastPoint(points);
 }

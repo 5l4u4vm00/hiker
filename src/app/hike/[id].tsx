@@ -15,13 +15,17 @@ import type { JournalEntry, Track, TrackPoint } from '@/db/types';
 import { shareTrackAsGpx } from '@/gpx/export';
 import { useTheme } from '@/hooks/use-theme';
 import { pointsToLineString } from '@/map/mapStyle';
+import { daylight, formatClock } from '@/sun/daylight';
 import {
+  computeStats,
   formatDateTime,
   formatDistance,
   formatDuration,
   formatElevation,
   formatPace,
+  formatSpeed,
 } from '@/tracking/stats';
+import { weatherIcon, weatherLabel } from '@/weather/weatherCodes';
 
 function boundsOf(points: TrackPoint[]): [number, number, number, number] | null {
   if (points.length === 0) return null;
@@ -100,6 +104,13 @@ export default function HikeDetailScreen() {
     );
   }
 
+  // Moving time and max speed aren't persisted; recompute them from the points
+  // already loaded for the map (cheap, and keeps the tracks schema lean).
+  const extended = computeStats(points);
+  const avgMovingSpeed = extended.movingTimeS >= 1 ? extended.distanceM / extended.movingTimeS : null;
+  const startSun =
+    points.length > 0 ? daylight(points[0].lat, points[0].lon, track.startedAt) : null;
+
   return (
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ title: track.name }} />
@@ -127,10 +138,23 @@ export default function HikeDetailScreen() {
           <StatGrid>
             <StatCard label="Distance" value={formatDistance(track.distanceM)} />
             <StatCard label="Duration" value={formatDuration(track.durationS)} />
+            <StatCard label="Moving time" value={formatDuration(extended.movingTimeS)} />
             <StatCard label="Ascent" value={formatElevation(track.ascentM)} />
             <StatCard label="Descent" value={formatElevation(track.descentM)} />
             <StatCard label="Max alt" value={formatElevation(track.maxAlt)} />
+            <StatCard label="Avg speed" value={formatSpeed(avgMovingSpeed)} />
+            <StatCard label="Max speed" value={formatSpeed(extended.maxSpeed)} />
             <StatCard label="Pace" value={formatPace(track.distanceM, track.durationS)} />
+            {startSun ? (
+              <StatCard label="Sunset" value={formatClock(startSun.sunsetMs)} />
+            ) : null}
+            {track.weatherCode != null ? (
+              <StatCard
+                icon={weatherIcon(track.weatherCode)}
+                label={weatherLabel(track.weatherCode)}
+                value={track.weatherTempC != null ? `${Math.round(track.weatherTempC)}°C` : '--'}
+              />
+            ) : null}
           </StatGrid>
 
           <ThemedText style={styles.sectionTitle}>Notes</ThemedText>

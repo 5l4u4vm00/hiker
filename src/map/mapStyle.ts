@@ -87,3 +87,8 @@ export function lastCoordinate(points: TrackPoint[]): LngLat | null {
   const p = points[points.length - 1];
   return [p.lon, p.lat];
 }
+
+/** Formats a coordinate as decimal degrees, e.g. `25.03304, 121.56542`. */
+export function formatCoordinate(lat: number, lon: number): string {
+  return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+}
