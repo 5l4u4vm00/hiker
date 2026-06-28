@@ -4,17 +4,19 @@ import {
   type CameraRef,
   type LngLatBounds,
   Map as MapLibreMap,
+  type MapRef,
   UserLocation,
 } from '@maplibre/maplibre-react-native';
-import { forwardRef, useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { CompassBadge } from '@/components/compass-badge';
 import { UserLocationHeading } from '@/components/user-location-heading';
 import { useTheme } from '@/hooks/use-theme';
-import { DEFAULT_ZOOM, MAP_RASTER_STYLE, TAIWAN_CENTER } from '@/map/mapStyle';
+import { buildRasterStyle, DEFAULT_ZOOM, TAIWAN_CENTER } from '@/map/mapStyle';
 import { useDeviceHeading } from '@/map/use-device-heading';
+import { resolveMapToken, useMapTokenStore } from '@/state/mapTokenStore';
 
 const BOUNDS_PADDING = { top: 40, right: 40, bottom: 40, left: 40 };
 const MIN_ZOOM = 1;
@@ -65,6 +67,13 @@ export interface MapCanvasProps {
   onPress?: (lngLat: [number, number]) => void;
   /** Called with the `[lon, lat]` of a long press on the map (e.g. to drop a waypoint). */
   onLongPress?: (lngLat: [number, number]) => void;
+  /**
+   * Forwarded ref to the underlying MapView, for `project`/`unproject`
+   * screen↔coordinate conversion (e.g. to drag an overlay handle).
+   */
+  mapRef?: RefObject<MapRef | null>;
+  /** Called after the map region finishes changing (pan/zoom/rotate settles). */
+  onRegionChange?: () => void;
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
@@ -89,6 +98,8 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
     showCompass = false,
     onPress,
     onLongPress,
+    mapRef,
+    onRegionChange,
     children,
     style,
   },
@@ -97,6 +108,10 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
   const theme = useTheme();
   const { t } = useTranslation();
   const heading = useDeviceHeading(showCompass || headingUp);
+  // Rebuilds whenever the user changes their MapTiler key in Settings; the new
+  // style object makes MapLibre reload the tiles with the new token.
+  const mapToken = useMapTokenStore((s) => s.token);
+  const mapStyle = buildRasterStyle(resolveMapToken(mapToken));
   // MapLibre throws "padding is greater than map's height or width" if a bounds
   // fit runs before the map view has been measured (e.g. during a tab
   // transition). Gate the bounds camera on the map having finished loading,
@@ -153,13 +168,15 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
   return (
     <View style={[styles.container, style]}>
       <MapLibreMap
+        ref={mapRef}
         style={styles.map}
-        mapStyle={MAP_RASTER_STYLE}
+        mapStyle={mapStyle}
         onDidFinishLoadingMap={() => setMapReady(true)}
         onPress={onPress ? (e) => onPress(e.nativeEvent.lngLat) : undefined}
         onLongPress={onLongPress ? (e) => onLongPress(e.nativeEvent.lngLat) : undefined}
         onRegionDidChange={(e) => {
           currentZoom.current = e.nativeEvent.zoom;
+          onRegionChange?.();
         }}>
         {headingUp ? (
           // Navigation-style follow: re-center on the live coordinate and rotate

@@ -3,50 +3,40 @@ import type { LngLat, LngLatBounds, StyleSpecification } from '@maplibre/maplibr
 import type { TrackPoint } from '@/db/types';
 
 /**
- * MapTiler API key, read from the `EXPO_PUBLIC_MAPTILER_KEY` env var (see
- * `.env.example`). `EXPO_PUBLIC_*` vars are inlined into the JS bundle at build
- * time. The key is therefore shipped in the client — restrict it by allowed
- * origins / bundle id in the MapTiler dashboard rather than treating it as a
- * secret. We deliberately avoid `expo.extra`/`Constants`, which freeze at native
- * build time, so the value can change without a full native rebuild.
+ * Builds the MapTiler "Outdoor" raster style: contour lines, trails, and peaks
+ * suited to hiking. Tiles are 256px and the `token` is appended as a query param.
+ * MapTiler's terms permit offline caching of bounded areas (unlike the public OSM
+ * servers), so the offline downloader can use this style directly.
+ *
+ * The token is supplied by the caller (see `@/state/mapTokenStore`) rather than
+ * read here, so the style rebuilds when the user changes their key in Settings.
  */
-const MAPTILER_KEY = process.env.EXPO_PUBLIC_MAPTILER_KEY ?? '';
-
-if (!MAPTILER_KEY && __DEV__) {
-  console.warn(
-    '[map] EXPO_PUBLIC_MAPTILER_KEY is not set — map tiles will fail to load. ' +
-      'Copy .env.example to .env and add your MapTiler key.',
-  );
+export function buildRasterStyle(token: string): StyleSpecification {
+  return {
+    version: 8,
+    sources: {
+      maptiler: {
+        type: 'raster',
+        tiles: [`https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=${token}`],
+        tileSize: 256,
+        maxzoom: 20,
+        attribution: '© MapTiler © OpenStreetMap contributors',
+      },
+    },
+    layers: [
+      {
+        id: 'maptiler',
+        type: 'raster',
+        source: 'maptiler',
+      },
+    ],
+  };
 }
 
-/**
- * MapTiler "Outdoor" raster style: contour lines, trails, and peaks suited to
- * hiking. Tiles are 256px and the key is appended as a query param. MapTiler's
- * terms permit offline caching of bounded areas (unlike the public OSM servers),
- * so the offline downloader can use this style directly.
- */
-export const MAP_RASTER_STYLE: StyleSpecification = {
-  version: 8,
-  sources: {
-    maptiler: {
-      type: 'raster',
-      tiles: [`https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`],
-      tileSize: 256,
-      maxzoom: 20,
-      attribution: '© MapTiler © OpenStreetMap contributors',
-    },
-  },
-  layers: [
-    {
-      id: 'maptiler',
-      type: 'raster',
-      source: 'maptiler',
-    },
-  ],
-};
-
 /** Map style serialized for the offline pack downloader (expects a string). */
-export const MAP_STYLE_JSON = JSON.stringify(MAP_RASTER_STYLE);
+export function buildStyleJson(token: string): string {
+  return JSON.stringify(buildRasterStyle(token));
+}
 
 /** Default camera position: centered on Taiwan. */
 export const TAIWAN_CENTER: LngLat = [120.96, 23.7];

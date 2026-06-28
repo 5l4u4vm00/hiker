@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -7,6 +7,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { type LanguagePreference, useLanguageStore } from '@/state/languageStore';
+import { useMapTokenStore } from '@/state/mapTokenStore';
 import { type ThemePreference, useThemeStore } from '@/state/themeStore';
 
 const THEME_OPTIONS: { value: ThemePreference; labelKey: 'themeSystem' | 'themeLight' | 'themeDark' }[] =
@@ -91,6 +92,32 @@ function LanguageSegmentedControl() {
   );
 }
 
+function MapTokenField() {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const token = useMapTokenStore((s) => s.token);
+  const setToken = useMapTokenStore((s) => s.setToken);
+
+  return (
+    <View style={styles.tokenField}>
+      <View style={[styles.inputBox, { backgroundColor: theme.backgroundElement }]}>
+        <TextInput
+          value={token}
+          onChangeText={setToken}
+          placeholder={t('settings.maptilerTokenPlaceholder')}
+          placeholderTextColor={theme.textSecondary}
+          style={[styles.input, { color: theme.text }]}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
+      <ThemedText type="small" themeColor="textSecondary">
+        {t('settings.maptilerTokenHelp')}
+      </ThemedText>
+    </View>
+  );
+}
+
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -114,6 +141,11 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>{t('settings.language')}</ThemedText>
           <LanguageSegmentedControl />
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>{t('settings.map')}</ThemedText>
+          <MapTokenField />
         </View>
 
         <View style={styles.section}>
@@ -144,4 +176,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   segmentLabel: { fontWeight: '600' },
+  tokenField: { gap: Spacing.two },
+  inputBox: {
+    paddingHorizontal: Spacing.three,
+    borderRadius: Spacing.three,
+    height: 48,
+    justifyContent: 'center',
+  },
+  input: { fontSize: 16 },
 });
