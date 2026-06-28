@@ -18,6 +18,7 @@ const BOUNDS_PADDING = { top: 40, right: 40, bottom: 40, left: 40 };
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 20;
 const ZOOM_STEP = 1;
+const RECENTER_ZOOM = 15;
 
 /** Midpoint of a `[west, south, east, north]` bounds tuple, for a pre-fit camera center. */
 function boundsCenter(bounds: LngLatBounds | undefined): [number, number] | undefined {
@@ -40,6 +41,14 @@ export interface MapCanvasProps {
    * style), rotated by the GPS course (`coords.heading`).
    */
   showHeading?: boolean;
+  /** The user's current coordinate; target for the recenter button. */
+  userCoordinate?: [number, number];
+  /**
+   * Show a "recenter on my location" button (above the zoom controls) that
+   * pans/zooms the camera to `userCoordinate`. Only renders when a coordinate
+   * is available.
+   */
+  showRecenter?: boolean;
   /**
    * Navigation-style orientation: center on the user and rotate the map so the
    * device compass heading points to the top of the screen. Overrides
@@ -67,6 +76,8 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
     bounds,
     showUser = true,
     showHeading = true,
+    userCoordinate,
+    showRecenter = false,
     headingUp = false,
     controlsTopInset = 0,
     showCompass = false,
@@ -99,6 +110,13 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
     const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, currentZoom.current + delta));
     currentZoom.current = next;
     cameraRef.current?.zoomTo(next, { duration: 200 });
+  };
+
+  const recenter = () => {
+    if (!userCoordinate) return;
+    // Keep the zoom buttons stepping from the level we land on.
+    currentZoom.current = RECENTER_ZOOM;
+    cameraRef.current?.easeTo({ center: userCoordinate, zoom: RECENTER_ZOOM, duration: 500 });
   };
 
   // In heading-up (recording) mode the camera follows the user via declarative
@@ -153,6 +171,18 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
 
       <View style={[styles.topRightControls, { top: controlsTopInset + 12 }]}>
         {showCompass && heading != null ? <CompassBadge heading={heading} /> : null}
+        {showRecenter && userCoordinate ? (
+          <View style={styles.controlButton}>
+            <Pressable
+              onPress={recenter}
+              style={styles.zoomButton}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Recenter on my location">
+              <Ionicons name="locate" size={22} color="#1F2933" />
+            </Pressable>
+          </View>
+        ) : null}
         <View style={styles.zoomControls}>
           <Pressable
             onPress={() => zoomBy(ZOOM_STEP)}
@@ -191,6 +221,16 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   zoomControls: {
+    backgroundColor: '#ffffff',
+    borderRadius: 10,
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  controlButton: {
     backgroundColor: '#ffffff',
     borderRadius: 10,
     overflow: 'hidden',

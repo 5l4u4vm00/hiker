@@ -248,6 +248,8 @@ export default function MapScreen() {
         bounds={followBounds}
         headingUp={isActive}
         showCompass
+        userCoordinate={currentCoord ?? undefined}
+        showRecenter={!isActive}
         controlsTopInset={insets.top + (followRoute ? 56 : 0)}>
         {routeLineFeature ? (
           <GeoJSONSource id="follow-route" data={routeLineFeature}>
