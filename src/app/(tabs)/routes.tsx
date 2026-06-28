@@ -344,6 +344,7 @@ export default function RoutesScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.chipScroll}
           contentContainerStyle={styles.chipRow}>
           <RegionChip
             label={t('routes.all')}
@@ -582,6 +583,7 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.two,
   },
   bannerText: { flexShrink: 1 },
+  chipScroll: { flexGrow: 0, flexShrink: 0 },
   chipRow: { gap: Spacing.two, paddingRight: Spacing.four },
   chip: {
     paddingHorizontal: Spacing.three,
