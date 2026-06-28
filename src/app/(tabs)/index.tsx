@@ -2,11 +2,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { GeoJSONSource, type LngLatBounds, Layer } from '@maplibre/maplibre-react-native';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, LinearTransition, runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { FollowHud } from '@/components/follow-hud';
 import { MapCanvas } from '@/components/map-canvas';
 import { PrimaryButton } from '@/components/primary-button';
 import { StatCard, StatGrid } from '@/components/stat-card';
@@ -14,11 +16,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { getRoute, getRouteWaypoints } from '@/db/routes';
-import { getTrackPoints } from '@/db/tracks';
-import type { Route, TrackPoint, Waypoint } from '@/db/types';
+import { getTrack, getTrackPoints } from '@/db/tracks';
+import type { TrackPoint, Waypoint } from '@/db/types';
 import { useTheme } from '@/hooks/use-theme';
 import { boundsOfCoords, formatCoordinate, lastCoordinate, pointsToLineString } from '@/map/mapStyle';
 import { useCurrentLocation } from '@/map/use-current-location';
+import { useFollowNavigation } from '@/map/use-follow-navigation';
 import { useFollowStore } from '@/state/followStore';
 import { useRecordingStore } from '@/state/recordingStore';
 import { daylight, formatClock } from '@/sun/daylight';
@@ -44,45 +47,61 @@ import { weatherIcon, weatherLabel } from '@/weather/weatherCodes';
 
 const POLL_INTERVAL_MS = 3000;
 
+/** A path overlaid on the map to follow, normalized from a route or a track. */
+interface FollowPath {
+  name: string;
+  geometry: GeoJSON.LineString;
+  waypoints: Waypoint[];
+}
+
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { trackId, status, startedAt, stats, live } = useRecordingStore();
-  const followRouteId = useFollowStore((s) => s.routeId);
+  const followKind = useFollowStore((s) => s.kind);
+  const followId = useFollowStore((s) => s.id);
   const clearFollow = useFollowStore((s) => s.clear);
   const [points, setPoints] = useState<TrackPoint[]>([]);
-  const [followRoute, setFollowRoute] = useState<Route | null>(null);
-  const [followWaypoints, setFollowWaypoints] = useState<Waypoint[]>([]);
+  const [followPath, setFollowPath] = useState<FollowPath | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [busy, setBusy] = useState(false);
   const [initialCenter, setInitialCenter] = useState<[number, number] | null>(null);
   const [statsCollapsed, setStatsCollapsed] = useState(true);
+  const [hudHeight, setHudHeight] = useState(0);
 
   const isActive = status === 'recording' || status === 'paused';
 
-  // Load the route to follow (geometry + waypoints) whenever the selection changes.
+  // Load the path to follow (geometry + waypoints) whenever the selection
+  // changes — a saved route or one of the user's recorded tracks.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!followRouteId) {
-        if (!cancelled) {
-          setFollowRoute(null);
-          setFollowWaypoints([]);
-        }
+      if (!followId || !followKind) {
+        if (!cancelled) setFollowPath(null);
         return;
       }
-      const [route, waypoints] = await Promise.all([
-        getRoute(followRouteId),
-        getRouteWaypoints(followRouteId),
-      ]);
-      if (cancelled) return;
-      setFollowRoute(route);
-      setFollowWaypoints(waypoints);
+      if (followKind === 'route') {
+        const [route, waypoints] = await Promise.all([
+          getRoute(followId),
+          getRouteWaypoints(followId),
+        ]);
+        if (cancelled) return;
+        setFollowPath(route ? { name: route.name, geometry: route.geometry, waypoints } : null);
+      } else {
+        const [track, pts] = await Promise.all([getTrack(followId), getTrackPoints(followId)]);
+        if (cancelled) return;
+        setFollowPath(
+          track && pts.length > 1
+            ? { name: track.name, geometry: pointsToLineString(pts).geometry, waypoints: [] }
+            : null,
+        );
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [followRouteId]);
+  }, [followKind, followId]);
 
   // On entry, center the map on the user's current location (instead of the
   // Taiwan-wide default) once a fix is available.
@@ -134,25 +153,22 @@ export default function MapScreen() {
   // Before recording, frame the whole route to follow; once recording, the
   // camera tracks the user (centerCoordinate) so the route line scrolls past.
   const followBounds: LngLatBounds | undefined =
-    !isActive && followRoute
-      ? (boundsOfCoords(followRoute.geometry.coordinates) ?? undefined)
+    !isActive && followPath
+      ? (boundsOfCoords(followPath.geometry.coordinates) ?? undefined)
       : undefined;
 
   const handleStart = useCallback(() => {
-    Alert.alert('Start hike?', 'Begin recording your route, distance, and elevation?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('map.startTitle'), t('map.startMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Start',
+        text: t('common.start'),
         onPress: async () => {
           setBusy(true);
           try {
-            const name = `Hike ${new Date().toLocaleDateString()}`;
+            const name = t('map.hikeName', { date: new Date().toLocaleDateString() });
             const id = await startRecording(name);
             if (!id) {
-              Alert.alert(
-                'Location permission needed',
-                'Hiker needs location access to record your hike. Please enable it in Settings.',
-              );
+              Alert.alert(t('map.permissionTitle'), t('map.permissionMessage'));
             }
           } finally {
             setBusy(false);
@@ -160,13 +176,13 @@ export default function MapScreen() {
         },
       },
     ]);
-  }, []);
+  }, [t]);
 
   const handleFinish = useCallback(() => {
-    Alert.alert('Finish hike?', 'Save this hike to your journal?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('map.finishTitle'), t('map.finishMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Save',
+        text: t('common.save'),
         onPress: async () => {
           setBusy(true);
           try {
@@ -178,7 +194,7 @@ export default function MapScreen() {
         },
       },
       {
-        text: 'Discard',
+        text: t('common.discard'),
         style: 'destructive',
         onPress: async () => {
           setBusy(true);
@@ -190,7 +206,7 @@ export default function MapScreen() {
         },
       },
     ]);
-  }, []);
+  }, [t]);
 
   const liveDuration = status === 'recording' ? Math.max(elapsed, stats.durationS) : stats.durationS;
 
@@ -199,6 +215,20 @@ export default function MapScreen() {
   const watched = useCurrentLocation(!isActive);
   const currentCoord: [number, number] | null =
     isActive && live.lat != null && live.lon != null ? [live.lon, live.lat] : watched;
+
+  // Live route guidance (progress, remaining, ETA, next waypoint, off-route).
+  // Decoupled from recording: uses whichever user position is available and, when
+  // recording, the moving pace for a better ETA.
+  const nav = useFollowNavigation(
+    followPath,
+    currentCoord,
+    isActive ? { distanceM: stats.distanceM, movingTimeS: stats.movingTimeS } : null,
+  );
+
+  // Push the map controls and coordinate chip below the follow HUD. The HUD sits
+  // at `insets.top + Spacing.two`; its measured height varies (e.g. the off-route
+  // row), so offset by the real height rather than a fixed guess.
+  const followInset = followPath ? Spacing.two + hudHeight : 0;
 
   // Sunset / remaining daylight from the latest fix (falling back to the
   // initial center before the first point arrives). `elapsed` ticking each
@@ -227,18 +257,30 @@ export default function MapScreen() {
   });
   const panelGesture = Gesture.Exclusive(panelDrag, panelTap);
 
-  const routeLineFeature: GeoJSON.Feature<GeoJSON.LineString> | null = followRoute
-    ? { type: 'Feature', properties: {}, geometry: followRoute.geometry }
+  const routeLineFeature: GeoJSON.Feature<GeoJSON.LineString> | null = followPath
+    ? { type: 'Feature', properties: {}, geometry: followPath.geometry }
     : null;
 
   const routeWaypointFeatures: GeoJSON.FeatureCollection = {
     type: 'FeatureCollection',
-    features: followWaypoints.map((w) => ({
+    features: (followPath?.waypoints ?? []).map((w) => ({
       type: 'Feature',
       properties: { name: w.name, kind: w.type },
       geometry: { type: 'Point', coordinates: [w.lon, w.lat] },
     })),
   };
+
+  const snappedFeature: GeoJSON.Feature<GeoJSON.Point> | null = nav
+    ? { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: nav.snapped } }
+    : null;
+
+  const nextWaypointFeature: GeoJSON.Feature<GeoJSON.Point> | null = nav?.nextWaypoint
+    ? {
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'Point', coordinates: [nav.nextWaypoint.lon, nav.nextWaypoint.lat] },
+      }
+    : null;
 
   return (
     <View style={styles.container}>
@@ -250,18 +292,18 @@ export default function MapScreen() {
         showCompass
         userCoordinate={currentCoord ?? undefined}
         showRecenter={!isActive}
-        controlsTopInset={insets.top + (followRoute ? 56 : 0)}>
+        controlsTopInset={insets.top + followInset}>
         {routeLineFeature ? (
           <GeoJSONSource id="follow-route" data={routeLineFeature}>
             <Layer
               id="follow-route-line"
               type="line"
               layout={{ 'line-join': 'round', 'line-cap': 'round' }}
-              paint={{ 'line-color': '#E5484D', 'line-width': 4 }}
+              paint={{ 'line-color': nav?.offRoute ? '#FF9500' : '#E5484D', 'line-width': 4 }}
             />
           </GeoJSONSource>
         ) : null}
-        {followWaypoints.length > 0 ? (
+        {(followPath?.waypoints.length ?? 0) > 0 ? (
           <GeoJSONSource id="follow-route-waypoints" data={routeWaypointFeatures}>
             <Layer
               id="follow-route-waypoints-layer"
@@ -271,6 +313,34 @@ export default function MapScreen() {
                 'circle-color': '#E5484D',
                 'circle-stroke-width': 2,
                 'circle-stroke-color': '#ffffff',
+              }}
+            />
+          </GeoJSONSource>
+        ) : null}
+        {nextWaypointFeature ? (
+          <GeoJSONSource id="follow-next-waypoint" data={nextWaypointFeature}>
+            <Layer
+              id="follow-next-waypoint-layer"
+              type="circle"
+              paint={{
+                'circle-radius': 8,
+                'circle-color': '#208AEF',
+                'circle-stroke-width': 3,
+                'circle-stroke-color': '#ffffff',
+              }}
+            />
+          </GeoJSONSource>
+        ) : null}
+        {snappedFeature ? (
+          <GeoJSONSource id="follow-snapped" data={snappedFeature}>
+            <Layer
+              id="follow-snapped-layer"
+              type="circle"
+              paint={{
+                'circle-radius': 5,
+                'circle-color': '#ffffff',
+                'circle-stroke-width': 3,
+                'circle-stroke-color': nav?.offRoute ? '#FF9500' : '#208AEF',
               }}
             />
           </GeoJSONSource>
@@ -290,33 +360,20 @@ export default function MapScreen() {
       {currentCoord ? (
         <ThemedView
           type="backgroundElement"
-          style={[styles.coordChip, { top: insets.top + (followRoute ? 56 : 0) + 12 }]}>
+          style={[styles.coordChip, { top: insets.top + followInset + 12 }]}>
           <Ionicons name="location" size={14} color="#208AEF" />
           <ThemedText type="small">{formatCoordinate(currentCoord[1], currentCoord[0])}</ThemedText>
         </ThemedView>
       ) : null}
 
-      {followRoute ? (
-        <ThemedView
-          type="backgroundElement"
-          style={[styles.followBanner, { top: insets.top + Spacing.two }]}>
-          <Ionicons name="trail-sign" size={18} color="#E5484D" />
-          <View style={styles.followBannerText}>
-            <ThemedText type="small" themeColor="textSecondary">
-              Following
-            </ThemedText>
-            <ThemedText style={styles.followBannerName} numberOfLines={1}>
-              {followRoute.name}
-            </ThemedText>
-          </View>
-          <Pressable
-            onPress={clearFollow}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Stop following route">
-            <Ionicons name="close-circle" size={24} color="#6B7280" />
-          </Pressable>
-        </ThemedView>
+      {followPath ? (
+        <FollowHud
+          name={followPath.name}
+          nav={nav}
+          topInset={insets.top + Spacing.two}
+          onClose={clearFollow}
+          onHeightChange={setHudHeight}
+        />
       ) : null}
 
       {isActive ? (
@@ -331,16 +388,16 @@ export default function MapScreen() {
               style={styles.panelHandle}
               accessibilityRole="adjustable"
               accessibilityLabel={
-                statsCollapsed ? 'Tap or drag up to expand stats' : 'Tap or drag down to collapse stats'
+                statsCollapsed ? t('map.expandStats') : t('map.collapseStats')
               }>
               <View style={styles.grabber} />
             </View>
           </GestureDetector>
           {statsCollapsed ? (
             <StatGrid>
-              <StatCard compact label="Distance" value={formatDistance(stats.distanceM)} />
-              <StatCard compact label="Duration" value={formatDuration(liveDuration)} />
-              <StatCard compact label="Altitude" value={formatElevation(live.altM)} />
+              <StatCard compact label={t('map.distance')} value={formatDistance(stats.distanceM)} />
+              <StatCard compact label={t('map.duration')} value={formatDuration(liveDuration)} />
+              <StatCard compact label={t('map.altitude')} value={formatElevation(live.altM)} />
             </StatGrid>
           ) : (
             <Animated.View
@@ -348,18 +405,22 @@ export default function MapScreen() {
               exiting={FadeOut.duration(120)}
               style={styles.statsBlock}>
               <StatGrid>
-                <StatCard label="Distance" value={formatDistance(stats.distanceM)} />
-                <StatCard label="Duration" value={formatDuration(liveDuration)} />
-                <StatCard label="Altitude" value={formatElevation(live.altM)} />
-                <StatCard label="Speed" value={formatSpeed(live.speedMps)} />
-                <StatCard label="Ascent" value={formatElevation(stats.ascentM)} />
+                <StatCard label={t('map.distance')} value={formatDistance(stats.distanceM)} />
+                <StatCard label={t('map.duration')} value={formatDuration(liveDuration)} />
+                <StatCard label={t('map.altitude')} value={formatElevation(live.altM)} />
+                <StatCard label={t('map.speed')} value={formatSpeed(live.speedMps)} />
+                <StatCard label={t('map.ascent')} value={formatElevation(stats.ascentM)} />
                 <StatCard
-                  label={sun ? `Sunset ${formatClock(sun.sunsetMs)}` : 'Daylight'}
+                  label={
+                    sun ? t('map.sunset', { time: formatClock(sun.sunsetMs) }) : t('map.daylight')
+                  }
                   value={
                     sun
                       ? sun.remainingMs > 0
-                        ? `${formatDurationShort(sun.remainingMs / 1000)} left`
-                        : 'After sunset'
+                        ? t('map.timeLeft', {
+                            duration: formatDurationShort(sun.remainingMs / 1000),
+                          })
+                        : t('map.afterSunset')
                       : '--'
                   }
                   tint={
@@ -372,11 +433,11 @@ export default function MapScreen() {
                 />
               </StatGrid>
               <StatGrid>
-                <StatCard compact icon="locate" label="GPS" value={gps.label} tint={gps.tint} />
+                <StatCard compact icon="locate" label={t('map.gps')} value={gps.label} tint={gps.tint} />
                 <StatCard
                   compact
                   icon={live.weatherCode != null ? weatherIcon(live.weatherCode) : 'cloud-offline'}
-                  label={live.weatherCode != null ? weatherLabel(live.weatherCode) : 'Weather'}
+                  label={live.weatherCode != null ? weatherLabel(live.weatherCode) : t('map.weather')}
                   value={live.weatherTempC != null ? `${Math.round(live.weatherTempC)}°C` : '--'}
                 />
               </StatGrid>
@@ -385,21 +446,21 @@ export default function MapScreen() {
           <View style={styles.row}>
             {status === 'recording' ? (
               <PrimaryButton
-                title="Pause"
+                title={t('map.pause')}
                 variant="neutral"
                 onPress={pauseRecording}
                 style={styles.flex}
               />
             ) : (
               <PrimaryButton
-                title="Resume"
+                title={t('map.resume')}
                 variant="primary"
                 onPress={resumeRecording}
                 style={styles.flex}
               />
             )}
             <PrimaryButton
-              title="Finish"
+              title={t('map.finish')}
               variant="danger"
               onPress={handleFinish}
               loading={busy}
@@ -410,7 +471,7 @@ export default function MapScreen() {
       ) : (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Start hike"
+          accessibilityLabel={t('map.startHike')}
           onPress={handleStart}
           disabled={busy}
           style={({ pressed }) => [
@@ -436,24 +497,6 @@ export default function MapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  followBanner: {
-    position: 'absolute',
-    left: Spacing.four,
-    right: Spacing.four,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingVertical: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    borderRadius: Spacing.three,
-    shadowColor: '#000000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
-  followBannerText: { flex: 1 },
-  followBannerName: { fontSize: 16, fontWeight: '600' },
   coordChip: {
     position: 'absolute',
     left: 12,

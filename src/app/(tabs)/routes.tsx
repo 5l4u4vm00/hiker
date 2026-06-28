@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { type TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
   Alert,
@@ -46,20 +48,21 @@ const SEARCH_DEBOUNCE_MS = 500;
 type RouteListItem = Route | OverpassRouteResult;
 type RouteSection = { kind: 'saved' | 'osm'; title: string; data: RouteListItem[] };
 
-function errorMessage(error: OverpassQueryError): string {
+function errorMessage(error: OverpassQueryError, t: TFunction): string {
   switch (error.kind) {
     case 'network':
-      return 'No connection — showing saved routes.';
+      return t('routes.errNetwork');
     case 'rate-limit':
-      return 'Search is busy, try again in a moment.';
+      return t('routes.errRateLimit');
     case 'server':
-      return 'Search unavailable right now.';
+      return t('routes.errServer');
   }
 }
 
 export default function RoutesScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const { t } = useTranslation();
   const [routes, setRoutes] = useState<Route[]>([]);
   const [regions, setRegions] = useState<string[]>([]);
   const [query, setQuery] = useState('');
@@ -170,23 +173,26 @@ export default function RoutesScreen() {
       }
     }
     if (!coords) {
-      Alert.alert('Location needed', 'Enable location access to find routes near you.');
+      Alert.alert(t('routes.locationNeededTitle'), t('routes.locationNeededMessage'));
       return;
     }
     runSearch(() => searchRoutesNearby(coords!));
-  }, [origin, runSearch]);
+  }, [origin, runSearch, t]);
 
   const onImport = useCallback(async () => {
     try {
       const route = await importGpxFromPicker();
       if (route) {
         await reload(query, region);
-        Alert.alert('Imported', `Added "${route.name}" to your routes.`);
+        Alert.alert(t('routes.importedTitle'), t('routes.importedMessage', { name: route.name }));
       }
     } catch (err) {
-      Alert.alert('Import failed', err instanceof Error ? err.message : 'Could not read GPX file.');
+      Alert.alert(
+        t('routes.importFailedTitle'),
+        err instanceof Error ? err.message : t('routes.importFailedMessage'),
+      );
     }
-  }, [reload, query, region]);
+  }, [reload, query, region, t]);
 
   // Preview a live result without saving it — the detail screen renders the
   // in-memory preview and only persists it on download or follow.
@@ -228,23 +234,32 @@ export default function RoutesScreen() {
       )
     : liveFiltered;
 
-  const sections: RouteSection[] = [{ kind: 'saved', title: 'Saved', data: sortedSaved }];
+  const sections: RouteSection[] = [
+    { kind: 'saved', title: t('routes.saved'), data: sortedSaved },
+  ];
   if (liveActive) {
-    sections.push({ kind: 'osm', title: 'From OpenStreetMap', data: sortedLive });
+    sections.push({ kind: 'osm', title: t('routes.fromOsm'), data: sortedLive });
   }
 
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top + Spacing.three }]}>
       <View style={styles.header}>
-        <ThemedText type="subtitle">Routes</ThemedText>
+        <ThemedText type="subtitle">{t('routes.title')}</ThemedText>
         <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push('/plan')}
+            style={styles.headerButton}
+            accessibilityRole="button">
+            <Ionicons name="create-outline" size={18} color="#208AEF" />
+            <ThemedText type="linkPrimary">{t('routes.planRoute')}</ThemedText>
+          </Pressable>
           <Pressable onPress={onNearby} style={styles.headerButton} accessibilityRole="button">
             <Ionicons name="navigate-outline" size={18} color="#208AEF" />
-            <ThemedText type="linkPrimary">Near me</ThemedText>
+            <ThemedText type="linkPrimary">{t('routes.nearMe')}</ThemedText>
           </Pressable>
           <Pressable onPress={onImport} style={styles.headerButton} accessibilityRole="button">
             <Ionicons name="download-outline" size={18} color="#208AEF" />
-            <ThemedText type="linkPrimary">Import GPX</ThemedText>
+            <ThemedText type="linkPrimary">{t('routes.importGpx')}</ThemedText>
           </Pressable>
         </View>
       </View>
@@ -254,7 +269,7 @@ export default function RoutesScreen() {
         <TextInput
           value={query}
           onChangeText={onSearch}
-          placeholder="Search trails online or saved"
+          placeholder={t('routes.searchPlaceholder')}
           placeholderTextColor={theme.textSecondary}
           style={[styles.searchInput, { color: theme.text }]}
         />
@@ -266,7 +281,7 @@ export default function RoutesScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}>
           <RegionChip
-            label="All"
+            label={t('routes.all')}
             selected={region === null}
             onPress={() => onSelectRegion(null)}
             theme={theme}
@@ -287,7 +302,7 @@ export default function RoutesScreen() {
         <View style={[styles.banner, { backgroundColor: theme.backgroundSelected }]}>
           <Ionicons name="cloud-offline-outline" size={16} color={theme.textSecondary} />
           <ThemedText type="small" themeColor="textSecondary" style={styles.bannerText}>
-            {errorMessage(searchError)}
+            {errorMessage(searchError, t)}
           </ThemedText>
         </View>
       ) : null}
@@ -311,13 +326,13 @@ export default function RoutesScreen() {
         renderSectionFooter={({ section }) =>
           section.kind === 'osm' && !searching && section.data.length === 0 && !searchError ? (
             <ThemedText type="small" themeColor="textSecondary" style={styles.sectionEmpty}>
-              No trails found online for that name.
+              {t('routes.noOnlineResults')}
             </ThemedText>
           ) : null
         }
         ListEmptyComponent={
           <ThemedText themeColor="textSecondary" style={styles.empty}>
-            No saved routes. Search online above or import a GPX file.
+            {t('routes.noSavedRoutes')}
           </ThemedText>
         }
         renderItem={({ item, section }) => (
@@ -344,6 +359,7 @@ function RouteCard({
   origin: { lat: number; lon: number } | null;
   live: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <ThemedView type="backgroundElement" style={styles.card}>
       <View style={styles.cardTop}>
@@ -354,7 +370,9 @@ function RouteCard({
               styles.badge,
               { backgroundColor: DIFFICULTY_COLORS[item.difficulty] ?? '#6B7280' },
             ]}>
-            <ThemedText style={styles.badgeText}>{item.difficulty}</ThemedText>
+            <ThemedText style={styles.badgeText}>
+              {t(`difficulty.${item.difficulty}`, item.difficulty)}
+            </ThemedText>
           </View>
         ) : null}
       </View>
@@ -364,16 +382,21 @@ function RouteCard({
         </ThemedText>
       ) : null}
       <ThemedText type="small" themeColor="textSecondary">
-        {formatDistance(item.distanceM)} · {formatElevation(item.ascentM)} ascent
+        {t('routes.routeStats', {
+          distance: formatDistance(item.distanceM),
+          ascent: formatElevation(item.ascentM),
+        })}
       </ThemedText>
       {origin ? (
         <ThemedText type="small" themeColor="textSecondary">
-          {formatDistance(nearestPointDistanceM(origin, item.geometry.coordinates))} away
+          {t('routes.away', {
+            distance: formatDistance(nearestPointDistanceM(origin, item.geometry.coordinates)),
+          })}
         </ThemedText>
       ) : null}
       {live ? (
         <ThemedText type="small" themeColor="textSecondary">
-          Tap to save for offline use
+          {t('routes.tapToSave')}
         </ThemedText>
       ) : null}
     </ThemedView>

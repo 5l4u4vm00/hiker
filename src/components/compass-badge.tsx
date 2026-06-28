@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -15,12 +16,13 @@ export interface CompassBadgeProps {
  * with the current facing bearing shown upright below.
  */
 export function CompassBadge({ heading, style }: CompassBadgeProps) {
+  const { t } = useTranslation();
   const bearing = Math.round(((heading % 360) + 360) % 360);
   return (
     <ThemedView type="backgroundElement" style={[styles.badge, style]}>
       <View style={styles.arrowBox}>
         <View style={[styles.dial, { transform: [{ rotate: `${-heading}deg` }] }]}>
-          <ThemedText style={styles.northLabel}>N</ThemedText>
+          <ThemedText style={styles.northLabel}>{t('units.cardinals.N')}</ThemedText>
           <View style={styles.northTip} />
           <View style={styles.southTail} />
         </View>

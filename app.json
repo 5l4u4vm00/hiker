@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.hiker.app",
       "infoPlist": {
-        "UIBackgroundModes": ["location"],
+        "UIBackgroundModes": [
+          "location"
+        ],
         "NSLocationWhenInUseUsageDescription": "Hiker uses your location to show your position on the map and record your hike.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Hiker records your track in the background while you hike, even when the screen is off.",
         "NSMotionUsageDescription": "Hiker uses motion data to estimate elevation gain and steps."
@@ -55,7 +57,8 @@
       ],
       "@maplibre/maplibre-react-native",
       "expo-sqlite",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

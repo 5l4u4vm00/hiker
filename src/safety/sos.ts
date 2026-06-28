@@ -2,6 +2,7 @@ import * as Location from 'expo-location';
 import { Linking, Platform, Share } from 'react-native';
 
 import type { EmergencyContact } from '@/db/types';
+import i18n from '@/i18n';
 
 export interface Coordinates {
   lat: number;
@@ -33,14 +34,17 @@ export function buildSosMessage(coords: Coordinates): string {
   const lat = coords.lat.toFixed(6);
   const lon = coords.lon.toFixed(6);
   const mapsUrl = `https://maps.google.com/?q=${lat},${lon}`;
-  const altText = coords.alt != null ? `\nAltitude: ${Math.round(coords.alt)} m` : '';
+  const altText =
+    coords.alt != null ? `\n${i18n.t('sos.altitude', { value: Math.round(coords.alt) })}` : '';
   const accText =
-    coords.accuracy != null ? `\nAccuracy: ±${Math.round(coords.accuracy)} m` : '';
+    coords.accuracy != null
+      ? `\n${i18n.t('sos.accuracy', { value: Math.round(coords.accuracy) })}`
+      : '';
   return (
-    `EMERGENCY — I need help. My current location:\n` +
-    `Lat: ${lat}, Lon: ${lon}${altText}${accText}\n` +
-    `Map: ${mapsUrl}\n` +
-    `Sent from Hiker at ${new Date().toLocaleString()}`
+    `${i18n.t('sos.emergencyHeader')}\n` +
+    `${i18n.t('sos.latLon', { lat, lon })}${altText}${accText}\n` +
+    `${i18n.t('sos.map', { url: mapsUrl })}\n` +
+    `${i18n.t('sos.sentFrom', { time: new Date().toLocaleString() })}`
   );
 }
 

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { MapCanvas } from '@/components/map-canvas';
@@ -26,6 +27,7 @@ import { formatDistance, formatElevation } from '@/tracking/stats';
 
 export default function RouteDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation();
   const [route, setRoute] = useState<Route | null>(null);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   // Whether this route is persisted in SQLite. A preview (opened from an online
@@ -82,7 +84,7 @@ export default function RouteDetailScreen() {
     if (!route) return;
     const preset = regionForRoute(route.id, route.name, route.geometry.coordinates);
     if (!preset) {
-      Alert.alert('Cannot download', 'This route has no map area to download.');
+      Alert.alert(t('routeDetail.cannotDownloadTitle'), t('routeDetail.cannotDownloadMessage'));
       return;
     }
     setDownloading(true);
@@ -92,26 +94,29 @@ export default function RouteDetailScreen() {
       await downloadRegion(preset, (p) => setProgress(p.percentage));
       await refreshDownloaded();
     } catch (err) {
-      Alert.alert('Download failed', err instanceof Error ? err.message : 'Unknown error.');
+      Alert.alert(
+        t('routeDetail.downloadFailedTitle'),
+        err instanceof Error ? err.message : t('routeDetail.unknownError'),
+      );
     } finally {
       setDownloading(false);
     }
-  }, [route, ensureSaved, refreshDownloaded]);
+  }, [route, ensureSaved, refreshDownloaded, t]);
 
   const onFollow = useCallback(async () => {
     if (!route) return;
     // The Map screen loads the followed route from SQLite by id, so persist first.
     await ensureSaved();
-    useFollowStore.getState().follow(route.id);
+    useFollowStore.getState().follow('route', route.id);
     router.navigate('/(tabs)');
   }, [route, ensureSaved]);
 
   const onDelete = useCallback(() => {
     if (!downloadedPackId) return;
-    Alert.alert('Delete offline map?', 'Remove the downloaded tiles for this route?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('routeDetail.deleteOfflineTitle'), t('routeDetail.deleteOfflineMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await deleteRegion(downloadedPackId);
@@ -119,12 +124,12 @@ export default function RouteDetailScreen() {
         },
       },
     ]);
-  }, [downloadedPackId, refreshDownloaded]);
+  }, [downloadedPackId, refreshDownloaded, t]);
 
   if (!route) {
     return (
       <ThemedView style={styles.center}>
-        <ThemedText themeColor="textSecondary">Loading…</ThemedText>
+        <ThemedText themeColor="textSecondary">{t('common.loading')}</ThemedText>
       </ThemedView>
     );
   }
@@ -185,15 +190,18 @@ export default function RouteDetailScreen() {
           ) : null}
 
           <StatGrid>
-            <StatCard label="Distance" value={formatDistance(route.distanceM)} />
-            <StatCard label="Ascent" value={formatElevation(route.ascentM)} />
-            <StatCard label="Difficulty" value={route.difficulty ?? '--'} />
+            <StatCard label={t('routeDetail.distance')} value={formatDistance(route.distanceM)} />
+            <StatCard label={t('routeDetail.ascent')} value={formatElevation(route.ascentM)} />
+            <StatCard
+              label={t('routeDetail.difficulty')}
+              value={route.difficulty ? t(`difficulty.${route.difficulty}`, route.difficulty) : '--'}
+            />
           </StatGrid>
 
           {downloadedPackId ? (
             <ThemedView type="backgroundElement" style={styles.downloadRow}>
               <Ionicons name="checkmark-circle" size={22} color="#30A46C" />
-              <ThemedText style={styles.downloadLabel}>Offline map ready</ThemedText>
+              <ThemedText style={styles.downloadLabel}>{t('routeDetail.offlineReady')}</ThemedText>
               <Pressable onPress={onDelete} hitSlop={8} accessibilityRole="button">
                 <Ionicons name="trash" size={22} color="#E5484D" />
               </Pressable>
@@ -208,24 +216,24 @@ export default function RouteDetailScreen() {
                 <>
                   <ActivityIndicator color="#fff" />
                   <ThemedText style={styles.downloadButtonText}>
-                    Downloading {Math.round(progress)}%
+                    {t('routeDetail.downloading', { percent: Math.round(progress) })}
                   </ThemedText>
                 </>
               ) : (
                 <>
                   <Ionicons name="download-outline" size={20} color="#fff" />
-                  <ThemedText style={styles.downloadButtonText}>Download offline map</ThemedText>
+                  <ThemedText style={styles.downloadButtonText}>
+                    {t('routeDetail.downloadOfflineMap')}
+                  </ThemedText>
                 </>
               )}
             </Pressable>
           )}
 
-          <PrimaryButton title="Follow on map" onPress={onFollow} />
+          <PrimaryButton title={t('routeDetail.followOnMap')} onPress={onFollow} />
 
           <ThemedText type="small" themeColor="textSecondary">
-            Download this route&apos;s map area first so it works without signal. &ldquo;Follow on
-            map&rdquo; overlays the route on the Map tab, where you can record your hike and stay on
-            track offline.
+            {t('routeDetail.hint')}
           </ThemedText>
         </View>
       </ScrollView>

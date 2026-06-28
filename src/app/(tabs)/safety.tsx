@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,7 +12,7 @@ import { Spacing } from '@/constants/theme';
 import { addContact, deleteContact, listContacts } from '@/db/contacts';
 import type { EmergencyContact } from '@/db/types';
 import { useTheme } from '@/hooks/use-theme';
-import { SAFETY_TIPS, TAIWAN_EMERGENCY_NUMBERS } from '@/safety/emergencyInfo';
+import { SAFETY_TIP_KEYS, TAIWAN_EMERGENCY_NUMBERS } from '@/safety/emergencyInfo';
 import {
   buildSosMessage,
   callNumber,
@@ -23,6 +24,7 @@ import {
 export default function SafetyScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const { t } = useTranslation();
   const [contacts, setContacts] = useState<EmergencyContact[]>([]);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -39,29 +41,34 @@ export default function SafetyScreen() {
     try {
       const coords = await getCurrentCoordinates();
       if (!coords) {
-        Alert.alert('Location unavailable', 'Could not get your location. Check permissions.');
+        Alert.alert(
+          t('safety.locationUnavailableTitle'),
+          t('safety.locationUnavailableMessage'),
+        );
         return;
       }
       const message = buildSosMessage(coords);
       const buttons = [
-        { text: 'Cancel', style: 'cancel' as const },
-        { text: 'Share location', onPress: () => shareLocation(message) },
-        { text: 'Call 119', onPress: () => callNumber('119') },
+        { text: t('common.cancel'), style: 'cancel' as const },
+        { text: t('safety.shareLocation'), onPress: () => shareLocation(message) },
+        { text: t('safety.call119'), onPress: () => callNumber('119') },
       ];
       if (contacts.length > 0) {
         buttons.splice(1, 0, {
-          text: 'Text contacts',
+          text: t('safety.textContacts'),
           onPress: async () => {
             const ok = await sendSosSms(message, contacts);
-            if (!ok) Alert.alert('SMS unavailable', 'Could not open the messaging app.');
+            if (!ok) {
+              Alert.alert(t('safety.smsUnavailableTitle'), t('safety.smsUnavailableMessage'));
+            }
           },
         });
       }
-      Alert.alert('Send SOS', message, buttons);
+      Alert.alert(t('safety.sosTitle'), message, buttons);
     } finally {
       setSending(false);
     }
-  }, [contacts]);
+  }, [contacts, t]);
 
   const handleAddContact = useCallback(async () => {
     if (!name.trim() || !phone.trim()) return;
@@ -85,17 +92,17 @@ export default function SafetyScreen() {
           paddingBottom: insets.bottom + Spacing.six,
           gap: Spacing.four,
         }}>
-        <ThemedText type="subtitle">Safety</ThemedText>
+        <ThemedText type="subtitle">{t('safety.title')}</ThemedText>
 
         <PrimaryButton
-          title="Send SOS with my location"
+          title={t('safety.sendSos')}
           variant="danger"
           onPress={handleSos}
           loading={sending}
         />
 
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Emergency contacts</ThemedText>
+          <ThemedText style={styles.sectionTitle}>{t('safety.contacts')}</ThemedText>
           {contacts.map((c) => (
             <ThemedView key={c.id} type="backgroundElement" style={styles.contactRow}>
               <View style={styles.flex}>
@@ -116,14 +123,14 @@ export default function SafetyScreen() {
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="Name"
+              placeholder={t('safety.namePlaceholder')}
               placeholderTextColor={theme.textSecondary}
               style={[styles.input, { color: theme.text, borderColor: theme.textSecondary }]}
             />
             <TextInput
               value={phone}
               onChangeText={setPhone}
-              placeholder="Phone"
+              placeholder={t('safety.phonePlaceholder')}
               keyboardType="phone-pad"
               placeholderTextColor={theme.textSecondary}
               style={[styles.input, { color: theme.text, borderColor: theme.textSecondary }]}
@@ -135,14 +142,14 @@ export default function SafetyScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Emergency numbers (Taiwan)</ThemedText>
+          <ThemedText style={styles.sectionTitle}>{t('safety.emergencyNumbers')}</ThemedText>
           {TAIWAN_EMERGENCY_NUMBERS.map((n) => (
             <Pressable key={n.number} onPress={() => callNumber(n.number)}>
               <ThemedView type="backgroundElement" style={styles.numberRow}>
                 <View style={styles.flex}>
-                  <ThemedText style={styles.contactName}>{n.label}</ThemedText>
+                  <ThemedText style={styles.contactName}>{t(n.labelKey)}</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
-                    {n.note}
+                    {t(n.noteKey)}
                   </ThemedText>
                 </View>
                 <ThemedText style={styles.number}>{n.number}</ThemedText>
@@ -152,12 +159,12 @@ export default function SafetyScreen() {
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Safety tips</ThemedText>
-          {SAFETY_TIPS.map((tip, i) => (
-            <View key={i} style={styles.tipRow}>
+          <ThemedText style={styles.sectionTitle}>{t('safety.safetyTips')}</ThemedText>
+          {SAFETY_TIP_KEYS.map((tipKey) => (
+            <View key={tipKey} style={styles.tipRow}>
               <Ionicons name="checkmark-circle" size={18} color="#30A46C" />
               <ThemedText type="small" style={styles.flex}>
-                {tip}
+                {t(tipKey)}
               </ThemedText>
             </View>
           ))}

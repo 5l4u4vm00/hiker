@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -5,15 +6,27 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { type LanguagePreference, useLanguageStore } from '@/state/languageStore';
 import { type ThemePreference, useThemeStore } from '@/state/themeStore';
 
-const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
-  { value: 'system', label: 'System' },
-  { value: 'light', label: 'Light' },
-  { value: 'dark', label: 'Dark' },
+const THEME_OPTIONS: { value: ThemePreference; labelKey: 'themeSystem' | 'themeLight' | 'themeDark' }[] =
+  [
+    { value: 'system', labelKey: 'themeSystem' },
+    { value: 'light', labelKey: 'themeLight' },
+    { value: 'dark', labelKey: 'themeDark' },
+  ];
+
+const LANGUAGE_OPTIONS: {
+  value: LanguagePreference;
+  labelKey: 'langSystem' | 'langEnglish' | 'langChinese';
+}[] = [
+  { value: 'system', labelKey: 'langSystem' },
+  { value: 'en', labelKey: 'langEnglish' },
+  { value: 'zh-Hant', labelKey: 'langChinese' },
 ];
 
 function ThemeSegmentedControl() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const preference = useThemeStore((s) => s.preference);
   const setPreference = useThemeStore((s) => s.setPreference);
@@ -36,7 +49,40 @@ function ThemeSegmentedControl() {
               type="small"
               themeColor={selected ? 'text' : 'textSecondary'}
               style={styles.segmentLabel}>
-              {option.label}
+              {t(`settings.${option.labelKey}`)}
+            </ThemedText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function LanguageSegmentedControl() {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const preference = useLanguageStore((s) => s.preference);
+  const setPreference = useLanguageStore((s) => s.setPreference);
+
+  return (
+    <View style={[styles.segments, { backgroundColor: theme.backgroundElement }]}>
+      {LANGUAGE_OPTIONS.map((option) => {
+        const selected = option.value === preference;
+        return (
+          <Pressable
+            key={option.value}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            onPress={() => setPreference(option.value)}
+            style={[
+              styles.segment,
+              selected && { backgroundColor: theme.backgroundSelected },
+            ]}>
+            <ThemedText
+              type="small"
+              themeColor={selected ? 'text' : 'textSecondary'}
+              style={styles.segmentLabel}>
+              {t(`settings.${option.labelKey}`)}
             </ThemedText>
           </Pressable>
         );
@@ -47,6 +93,7 @@ function ThemeSegmentedControl() {
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   return (
     <ThemedView style={styles.container}>
@@ -57,17 +104,22 @@ export default function SettingsScreen() {
           paddingBottom: insets.bottom + Spacing.six,
           gap: Spacing.four,
         }}>
-        <ThemedText type="subtitle">Settings</ThemedText>
+        <ThemedText type="subtitle">{t('settings.title')}</ThemedText>
 
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Appearance</ThemedText>
+          <ThemedText style={styles.sectionTitle}>{t('settings.appearance')}</ThemedText>
           <ThemeSegmentedControl />
         </View>
 
         <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>About</ThemedText>
+          <ThemedText style={styles.sectionTitle}>{t('settings.language')}</ThemedText>
+          <LanguageSegmentedControl />
+        </View>
+
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>{t('settings.about')}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            Hiker stores all your data on this device. Maps © OpenStreetMap contributors.
+            {t('settings.aboutText')}
           </ThemedText>
         </View>
       </ScrollView>

@@ -1,0 +1,293 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "start": "Start",
+    "discard": "Discard",
+    "loading": "Loading…"
+  },
+  "tabs": {
+    "map": "Map",
+    "routes": "Routes",
+    "journal": "Journal",
+    "safety": "Safety",
+    "settings": "Settings"
+  },
+  "nav": {
+    "route": "Route",
+    "hike": "Hike"
+  },
+  "map": {
+    "startTitle": "Start hike?",
+    "startMessage": "Begin recording your route, distance, and elevation?",
+    "permissionTitle": "Location permission needed",
+    "permissionMessage": "Hiker needs location access to record your hike. Please enable it in Settings.",
+    "finishTitle": "Finish hike?",
+    "finishMessage": "Save this hike to your journal?",
+    "pause": "Pause",
+    "resume": "Resume",
+    "finish": "Finish",
+    "hikeName": "Hike {{date}}",
+    "expandStats": "Tap or drag up to expand stats",
+    "collapseStats": "Tap or drag down to collapse stats",
+    "startHike": "Start hike",
+    "distance": "Distance",
+    "duration": "Duration",
+    "altitude": "Altitude",
+    "speed": "Speed",
+    "ascent": "Ascent",
+    "sunset": "Sunset {{time}}",
+    "daylight": "Daylight",
+    "timeLeft": "{{duration}} left",
+    "afterSunset": "After sunset",
+    "gps": "GPS",
+    "weather": "Weather"
+  },
+  "routes": {
+    "title": "Routes",
+    "planRoute": "Plan",
+    "nearMe": "Near me",
+    "importGpx": "Import GPX",
+    "saved": "Saved",
+    "fromOsm": "From OpenStreetMap",
+    "searchPlaceholder": "Search trails online or saved",
+    "all": "All",
+    "errNetwork": "No connection — showing saved routes.",
+    "errRateLimit": "Search is busy, try again in a moment.",
+    "errServer": "Search unavailable right now.",
+    "noOnlineResults": "No trails found online for that name.",
+    "noSavedRoutes": "No saved routes. Search online above or import a GPX file.",
+    "routeStats": "{{distance}} · {{ascent}} ascent",
+    "away": "{{distance}} away",
+    "tapToSave": "Tap to save for offline use",
+    "importedTitle": "Imported",
+    "importedMessage": "Added \"{{name}}\" to your routes.",
+    "importFailedTitle": "Import failed",
+    "importFailedMessage": "Could not read GPX file.",
+    "locationNeededTitle": "Location needed",
+    "locationNeededMessage": "Enable location access to find routes near you."
+  },
+  "journal": {
+    "title": "Journal",
+    "hikes": "Hikes",
+    "totalDistance": "Total distance",
+    "totalAscent": "Total ascent",
+    "empty": "No hikes yet. Record one from the Map tab to see it here.",
+    "trackStats": "{{distance}} · {{duration}} · {{ascent}} ascent"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark",
+    "language": "Language",
+    "langSystem": "System",
+    "langEnglish": "English",
+    "langChinese": "中文",
+    "about": "About",
+    "aboutText": "Hiker stores all your data on this device. Maps © OpenStreetMap contributors."
+  },
+  "safety": {
+    "title": "Safety",
+    "sendSos": "Send SOS with my location",
+    "contacts": "Emergency contacts",
+    "namePlaceholder": "Name",
+    "phonePlaceholder": "Phone",
+    "emergencyNumbers": "Emergency numbers (Taiwan)",
+    "safetyTips": "Safety tips",
+    "sosTitle": "Send SOS",
+    "shareLocation": "Share location",
+    "textContacts": "Text contacts",
+    "call119": "Call 119",
+    "locationUnavailableTitle": "Location unavailable",
+    "locationUnavailableMessage": "Could not get your location. Check permissions.",
+    "smsUnavailableTitle": "SMS unavailable",
+    "smsUnavailableMessage": "Could not open the messaging app.",
+    "numbers": {
+      "fireAmbulance": {
+        "label": "Fire / Ambulance / Mountain Rescue",
+        "note": "Primary number for medical and mountain rescue emergencies."
+      },
+      "police": {
+        "label": "Police",
+        "note": "Police emergencies."
+      },
+      "mobile": {
+        "label": "Mobile Emergency (no SIM / roaming)",
+        "note": "Works on any network, even without a SIM card or signal from your carrier."
+      },
+      "nationalPark": {
+        "label": "National Park Rescue (NPR hotline)",
+        "note": "Yushan National Park HQ. Check the relevant park for your specific area."
+      }
+    },
+    "tips": {
+      "shareRoute": "Share your route and expected return time with someone before you set off.",
+      "offlineMaps": "Download offline maps for your area in Settings before losing signal.",
+      "battery": "Keep your phone in battery-saving mode and carry a power bank.",
+      "ifLost": "If lost, stay put, keep warm, and make yourself visible to rescuers.",
+      "dial112": "Dial 112 if you have no signal from your own carrier — it uses any available network."
+    }
+  },
+  "routeDetail": {
+    "cannotDownloadTitle": "Cannot download",
+    "cannotDownloadMessage": "This route has no map area to download.",
+    "downloadFailedTitle": "Download failed",
+    "unknownError": "Unknown error.",
+    "deleteOfflineTitle": "Delete offline map?",
+    "deleteOfflineMessage": "Remove the downloaded tiles for this route?",
+    "distance": "Distance",
+    "ascent": "Ascent",
+    "difficulty": "Difficulty",
+    "offlineReady": "Offline map ready",
+    "downloadOfflineMap": "Download offline map",
+    "downloading": "Downloading {{percent}}%",
+    "followOnMap": "Follow on map",
+    "hint": "Download this route's map area first so it works without signal. \"Follow on map\" overlays the route on the Map tab, where you can record your hike and stay on track offline."
+  },
+  "hikeDetail": {
+    "distance": "Distance",
+    "duration": "Duration",
+    "movingTime": "Moving time",
+    "ascent": "Ascent",
+    "descent": "Descent",
+    "maxAlt": "Max alt",
+    "avgSpeed": "Avg speed",
+    "maxSpeed": "Max speed",
+    "pace": "Pace",
+    "sunset": "Sunset",
+    "notes": "Notes",
+    "notePlaceholder": "Add a note about this hike",
+    "addNote": "Add note",
+    "followOnMap": "Follow on map",
+    "exportGpx": "Export GPX",
+    "deleteTitle": "Delete hike?",
+    "deleteMessage": "This cannot be undone."
+  },
+  "followHud": {
+    "following": "Following",
+    "followingProgress": "Following · {{percent}}%",
+    "offRoute": "Off route · {{distance}} away",
+    "remaining": "Remaining",
+    "eta": "ETA",
+    "next": "Next",
+    "locating": "Locating…",
+    "stopFollowing": "Stop following route"
+  },
+  "mapCanvas": {
+    "recenter": "Recenter on my location",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out"
+  },
+  "plan": {
+    "title": "Plan a route",
+    "distance": "Distance",
+    "ascent": "Ascent",
+    "time": "Est. time",
+    "points": "Points",
+    "flatEstimate": "flat est.",
+    "undo": "Undo",
+    "clear": "Clear",
+    "waypoint": "Waypoint",
+    "deletePoint": "Delete point",
+    "addWaypoint": "Add waypoint",
+    "editWaypoint": "Edit waypoint",
+    "deleteWaypoint": "Delete waypoint",
+    "waypointNamePlaceholder": "Waypoint name (optional)",
+    "waypointNeedsPointTitle": "Add a point first",
+    "waypointNeedsPointMessage": "Tap the map to add a route point, then drop a waypoint.",
+    "recomputeElevation": "Elevation offline — tap to retry",
+    "emptyHint": "Tap the map to start drawing your route.",
+    "saveRoute": "Save route",
+    "routeNamePlaceholder": "Route name",
+    "regionPlaceholder": "Region (optional)",
+    "nameRequiredTitle": "Name needed",
+    "nameRequiredMessage": "Give your route a name before saving.",
+    "saveFailedTitle": "Save failed",
+    "saveFailedMessage": "Could not save the route.",
+    "savedTitle": "Route saved",
+    "savedSubtitle": "Run through your pre-hike checklist, then open the route to download its offline map.",
+    "openRoute": "Open route",
+    "discardTitle": "Discard route?",
+    "discardMessage": "Your drawn route will be lost."
+  },
+  "waypointTypes": {
+    "water": "Water",
+    "campsite": "Campsite",
+    "peak": "Peak",
+    "junction": "Junction",
+    "hut": "Hut",
+    "view": "View",
+    "other": "Other"
+  },
+  "checklist": {
+    "sections": {
+      "navigation": "Navigation",
+      "supplies": "Water & food",
+      "safety": "Safety",
+      "weather": "Weather & clothing"
+    },
+    "items": {
+      "offlineMap": "Offline map downloaded",
+      "routeShared": "Route and return time shared",
+      "compass": "Compass / GPS working",
+      "water": "Enough water",
+      "food": "Food and snacks",
+      "powerBank": "Charged power bank",
+      "firstAid": "First-aid kit",
+      "headlamp": "Headlamp",
+      "whistle": "Whistle",
+      "rainGear": "Rain gear",
+      "layers": "Warm layers",
+      "forecast": "Checked the forecast"
+    }
+  },
+  "difficulty": {
+    "easy": "easy",
+    "moderate": "moderate",
+    "hard": "hard",
+    "expert": "expert"
+  },
+  "weather": {
+    "clear": "Clear",
+    "partlyCloudy": "Partly cloudy",
+    "overcast": "Overcast",
+    "fog": "Fog",
+    "drizzle": "Drizzle",
+    "rain": "Rain",
+    "snow": "Snow",
+    "rainShowers": "Rain showers",
+    "snowShowers": "Snow showers",
+    "thunderstorm": "Thunderstorm",
+    "cloudy": "Cloudy"
+  },
+  "units": {
+    "m": "m",
+    "km": "km",
+    "kmh": "km/h",
+    "perKm": "/km",
+    "gpsGood": "Good",
+    "gpsFair": "Fair",
+    "gpsPoor": "Poor",
+    "cardinals": {
+      "N": "N",
+      "NE": "NE",
+      "E": "E",
+      "SE": "SE",
+      "S": "S",
+      "SW": "SW",
+      "W": "W",
+      "NW": "NW"
+    }
+  },
+  "sos": {
+    "emergencyHeader": "EMERGENCY — I need help. My current location:",
+    "latLon": "Lat: {{lat}}, Lon: {{lon}}",
+    "altitude": "Altitude: {{value}} m",
+    "accuracy": "Accuracy: ±{{value}} m",
+    "map": "Map: {{url}}",
+    "sentFrom": "Sent from Hiker at {{time}}"
+  }
+}

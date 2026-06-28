@@ -92,3 +92,11 @@ export function lastCoordinate(points: TrackPoint[]): LngLat | null {
 export function formatCoordinate(lat: number, lon: number): string {
   return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
 }
+
+/**
+ * Midpoint of two `[lon, lat]` coordinates. A planar average, which is accurate
+ * enough at trail scale for placing an insert handle between two route vertices.
+ */
+export function midpoint(a: [number, number], b: [number, number]): [number, number] {
+  return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+}

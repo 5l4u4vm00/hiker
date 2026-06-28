@@ -3,9 +3,7 @@ import { XMLParser } from 'fast-xml-parser';
 
 import { type RouteInput, upsertRoute } from '@/db/routes';
 import type { Route } from '@/db/types';
-import { haversine } from '@/tracking/stats';
-
-const ELEVATION_THRESHOLD_M = 3;
+import { ascentFromElevations, haversine } from '@/tracking/stats';
 
 interface GpxPoint {
   lat: number;
@@ -60,21 +58,8 @@ function pushPoint(points: GpxPoint[], pt: RawTrkpt): void {
 
 function computeGeometryStats(points: GpxPoint[]): { distanceM: number; ascentM: number } {
   let distanceM = 0;
-  let ascentM = 0;
-  let refEle: number | null = null;
-  for (let i = 0; i < points.length; i++) {
-    if (i > 0) distanceM += haversine(points[i - 1], points[i]);
-    const ele = points[i].ele;
-    if (ele != null) {
-      if (refEle == null) refEle = ele;
-      else if (ele - refEle >= ELEVATION_THRESHOLD_M) {
-        ascentM += ele - refEle;
-        refEle = ele;
-      } else if (ele < refEle) {
-        refEle = ele;
-      }
-    }
-  }
+  for (let i = 1; i < points.length; i++) distanceM += haversine(points[i - 1], points[i]);
+  const ascentM = ascentFromElevations(points.map((p) => p.ele));
   return { distanceM, ascentM };
 }
 

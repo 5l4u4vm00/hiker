@@ -1,5 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +14,7 @@ import { formatDate, formatDistance, formatDuration, formatElevation } from '@/t
 
 export default function JournalScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [tracks, setTracks] = useState<Track[]>([]);
 
   useFocusEffect(
@@ -35,7 +37,7 @@ export default function JournalScreen() {
   return (
     <ThemedView style={[styles.container, { paddingTop: insets.top + Spacing.three }]}>
       <ThemedText type="subtitle" style={styles.heading}>
-        Journal
+        {t('journal.title')}
       </ThemedText>
 
       <FlatList
@@ -45,15 +47,15 @@ export default function JournalScreen() {
         ListHeaderComponent={
           <View style={styles.summary}>
             <StatGrid>
-              <StatCard label="Hikes" value={String(totals.count)} />
-              <StatCard label="Total distance" value={formatDistance(totals.distanceM)} />
-              <StatCard label="Total ascent" value={formatElevation(totals.ascentM)} />
+              <StatCard label={t('journal.hikes')} value={String(totals.count)} />
+              <StatCard label={t('journal.totalDistance')} value={formatDistance(totals.distanceM)} />
+              <StatCard label={t('journal.totalAscent')} value={formatElevation(totals.ascentM)} />
             </StatGrid>
           </View>
         }
         ListEmptyComponent={
           <ThemedText themeColor="textSecondary" style={styles.empty}>
-            No hikes yet. Record one from the Map tab to see it here.
+            {t('journal.empty')}
           </ThemedText>
         }
         renderItem={({ item }) => (
@@ -64,8 +66,11 @@ export default function JournalScreen() {
                 {formatDate(item.startedAt)}
               </ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                {formatDistance(item.distanceM)} · {formatDuration(item.durationS)} ·{' '}
-                {formatElevation(item.ascentM)} ascent
+                {t('journal.trackStats', {
+                  distance: formatDistance(item.distanceM),
+                  duration: formatDuration(item.durationS),
+                  ascent: formatElevation(item.ascentM),
+                })}
               </ThemedText>
             </ThemedView>
           </Pressable>

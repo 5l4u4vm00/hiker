@@ -7,6 +7,7 @@ import {
   UserLocation,
 } from '@maplibre/maplibre-react-native';
 import { forwardRef, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { CompassBadge } from '@/components/compass-badge';
@@ -60,6 +61,10 @@ export interface MapCanvasProps {
   controlsTopInset?: number;
   /** Show a north-pointing compass above the zoom controls (driven by the device heading). */
   showCompass?: boolean;
+  /** Called with the `[lon, lat]` of a single tap on the map (e.g. to draw a route). */
+  onPress?: (lngLat: [number, number]) => void;
+  /** Called with the `[lon, lat]` of a long press on the map (e.g. to drop a waypoint). */
+  onLongPress?: (lngLat: [number, number]) => void;
   children?: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }
@@ -82,12 +87,15 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
     headingUp = false,
     controlsTopInset = 0,
     showCompass = false,
+    onPress,
+    onLongPress,
     children,
     style,
   },
   ref,
 ) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const heading = useDeviceHeading(showCompass || headingUp);
   // MapLibre throws "padding is greater than map's height or width" if a bounds
   // fit runs before the map view has been measured (e.g. during a tab
@@ -148,6 +156,8 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
         style={styles.map}
         mapStyle={MAP_RASTER_STYLE}
         onDidFinishLoadingMap={() => setMapReady(true)}
+        onPress={onPress ? (e) => onPress(e.nativeEvent.lngLat) : undefined}
+        onLongPress={onLongPress ? (e) => onLongPress(e.nativeEvent.lngLat) : undefined}
         onRegionDidChange={(e) => {
           currentZoom.current = e.nativeEvent.zoom;
         }}>
@@ -180,7 +190,7 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
               style={styles.zoomButton}
               hitSlop={6}
               accessibilityRole="button"
-              accessibilityLabel="Recenter on my location">
+              accessibilityLabel={t('mapCanvas.recenter')}>
               <Ionicons name="locate" size={22} color={theme.text} />
             </Pressable>
           </View>
@@ -191,7 +201,7 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
             style={styles.zoomButton}
             hitSlop={6}
             accessibilityRole="button"
-            accessibilityLabel="Zoom in">
+            accessibilityLabel={t('mapCanvas.zoomIn')}>
             <Ionicons name="add" size={24} color={theme.text} />
           </Pressable>
           <View style={[styles.zoomDivider, { backgroundColor: theme.backgroundSelected }]} />
@@ -200,7 +210,7 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
             style={styles.zoomButton}
             hitSlop={6}
             accessibilityRole="button"
-            accessibilityLabel="Zoom out">
+            accessibilityLabel={t('mapCanvas.zoomOut')}>
             <Ionicons name="remove" size={24} color={theme.text} />
           </Pressable>
         </View>

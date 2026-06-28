@@ -1,0 +1,293 @@
+{
+  "common": {
+    "cancel": "取消",
+    "save": "儲存",
+    "delete": "刪除",
+    "start": "開始",
+    "discard": "捨棄",
+    "loading": "載入中…"
+  },
+  "tabs": {
+    "map": "地圖",
+    "routes": "路線",
+    "journal": "日誌",
+    "safety": "安全",
+    "settings": "設定"
+  },
+  "nav": {
+    "route": "路線",
+    "hike": "健行"
+  },
+  "map": {
+    "startTitle": "開始健行？",
+    "startMessage": "開始記錄你的路線、距離與爬升？",
+    "permissionTitle": "需要定位權限",
+    "permissionMessage": "Hiker 需要定位權限才能記錄你的健行。請在系統設定中開啟。",
+    "finishTitle": "結束健行？",
+    "finishMessage": "將這次健行儲存到日誌？",
+    "pause": "暫停",
+    "resume": "繼續",
+    "finish": "結束",
+    "hikeName": "健行 {{date}}",
+    "expandStats": "點按或上滑展開統計",
+    "collapseStats": "點按或下滑收合統計",
+    "startHike": "開始健行",
+    "distance": "距離",
+    "duration": "時間",
+    "altitude": "海拔",
+    "speed": "速度",
+    "ascent": "爬升",
+    "sunset": "日落 {{time}}",
+    "daylight": "日照",
+    "timeLeft": "剩餘 {{duration}}",
+    "afterSunset": "已過日落",
+    "gps": "GPS",
+    "weather": "天氣"
+  },
+  "routes": {
+    "title": "路線",
+    "planRoute": "規劃",
+    "nearMe": "附近",
+    "importGpx": "匯入 GPX",
+    "saved": "已儲存",
+    "fromOsm": "來自 OpenStreetMap",
+    "searchPlaceholder": "搜尋線上或已儲存的路線",
+    "all": "全部",
+    "errNetwork": "無網路連線 — 顯示已儲存的路線。",
+    "errRateLimit": "搜尋忙碌中，請稍後再試。",
+    "errServer": "搜尋暫時無法使用。",
+    "noOnlineResults": "線上找不到符合該名稱的路線。",
+    "noSavedRoutes": "尚無已儲存的路線。請於上方線上搜尋或匯入 GPX 檔案。",
+    "routeStats": "{{distance}} · 爬升 {{ascent}}",
+    "away": "距離 {{distance}}",
+    "tapToSave": "點按以儲存供離線使用",
+    "importedTitle": "已匯入",
+    "importedMessage": "已將「{{name}}」加入你的路線。",
+    "importFailedTitle": "匯入失敗",
+    "importFailedMessage": "無法讀取 GPX 檔案。",
+    "locationNeededTitle": "需要定位",
+    "locationNeededMessage": "開啟定位權限以尋找附近的路線。"
+  },
+  "journal": {
+    "title": "日誌",
+    "hikes": "健行次數",
+    "totalDistance": "總距離",
+    "totalAscent": "總爬升",
+    "empty": "尚無健行記錄。從地圖分頁記錄一次健行後即會顯示於此。",
+    "trackStats": "{{distance}} · {{duration}} · 爬升 {{ascent}}"
+  },
+  "settings": {
+    "title": "設定",
+    "appearance": "外觀",
+    "themeSystem": "系統",
+    "themeLight": "淺色",
+    "themeDark": "深色",
+    "language": "語言",
+    "langSystem": "系統",
+    "langEnglish": "English",
+    "langChinese": "中文",
+    "about": "關於",
+    "aboutText": "Hiker 將你的所有資料儲存在這部裝置上。地圖資料 © OpenStreetMap 貢獻者。"
+  },
+  "safety": {
+    "title": "安全",
+    "sendSos": "傳送含定位的 SOS",
+    "contacts": "緊急聯絡人",
+    "namePlaceholder": "姓名",
+    "phonePlaceholder": "電話",
+    "emergencyNumbers": "緊急電話（台灣）",
+    "safetyTips": "安全提示",
+    "sosTitle": "傳送 SOS",
+    "shareLocation": "分享定位",
+    "textContacts": "傳簡訊給聯絡人",
+    "call119": "撥打 119",
+    "locationUnavailableTitle": "無法取得定位",
+    "locationUnavailableMessage": "無法取得你的定位，請檢查權限。",
+    "smsUnavailableTitle": "無法使用簡訊",
+    "smsUnavailableMessage": "無法開啟簡訊應用程式。",
+    "numbers": {
+      "fireAmbulance": {
+        "label": "消防／救護／山難救援",
+        "note": "醫療與山難救援的主要緊急電話。"
+      },
+      "police": {
+        "label": "警察",
+        "note": "警察緊急事件。"
+      },
+      "mobile": {
+        "label": "行動緊急電話（無 SIM／漫遊）",
+        "note": "即使沒有 SIM 卡或自家電信訊號，也可使用任何網路撥打。"
+      },
+      "nationalPark": {
+        "label": "國家公園救援（NPR 專線）",
+        "note": "玉山國家公園總部。請查詢你所在區域的相關國家公園。"
+      }
+    },
+    "tips": {
+      "shareRoute": "出發前，先將你的路線與預計返回時間告訴他人。",
+      "offlineMaps": "在失去訊號前，先於設定中下載你所在區域的離線地圖。",
+      "battery": "讓手機保持省電模式，並攜帶行動電源。",
+      "ifLost": "若迷路，請待在原地、保暖，並讓自己容易被救援人員看見。",
+      "dial112": "若自家電信沒有訊號，請撥打 112 — 它會使用任何可用的網路。"
+    }
+  },
+  "routeDetail": {
+    "cannotDownloadTitle": "無法下載",
+    "cannotDownloadMessage": "此路線沒有可下載的地圖範圍。",
+    "downloadFailedTitle": "下載失敗",
+    "unknownError": "未知錯誤。",
+    "deleteOfflineTitle": "刪除離線地圖？",
+    "deleteOfflineMessage": "移除此路線已下載的圖磚？",
+    "distance": "距離",
+    "ascent": "爬升",
+    "difficulty": "難度",
+    "offlineReady": "離線地圖已就緒",
+    "downloadOfflineMap": "下載離線地圖",
+    "downloading": "下載中 {{percent}}%",
+    "followOnMap": "在地圖上跟隨",
+    "hint": "請先下載此路線的地圖範圍，讓它在沒有訊號時也能使用。「在地圖上跟隨」會將路線疊加在地圖分頁，你可以在那裡記錄健行並離線保持在路線上。"
+  },
+  "hikeDetail": {
+    "distance": "距離",
+    "duration": "時間",
+    "movingTime": "移動時間",
+    "ascent": "爬升",
+    "descent": "下降",
+    "maxAlt": "最高海拔",
+    "avgSpeed": "平均速度",
+    "maxSpeed": "最高速度",
+    "pace": "配速",
+    "sunset": "日落",
+    "notes": "筆記",
+    "notePlaceholder": "為這次健行新增筆記",
+    "addNote": "新增筆記",
+    "followOnMap": "在地圖上跟隨",
+    "exportGpx": "匯出 GPX",
+    "deleteTitle": "刪除健行？",
+    "deleteMessage": "此動作無法復原。"
+  },
+  "followHud": {
+    "following": "跟隨中",
+    "followingProgress": "跟隨中 · {{percent}}%",
+    "offRoute": "偏離路線 · 距離 {{distance}}",
+    "remaining": "剩餘",
+    "eta": "預計到達",
+    "next": "下一個",
+    "locating": "定位中…",
+    "stopFollowing": "停止跟隨路線"
+  },
+  "mapCanvas": {
+    "recenter": "回到我的位置",
+    "zoomIn": "放大",
+    "zoomOut": "縮小"
+  },
+  "plan": {
+    "title": "規劃路線",
+    "distance": "距離",
+    "ascent": "爬升",
+    "time": "預估時間",
+    "points": "點數",
+    "flatEstimate": "平路估算",
+    "undo": "復原",
+    "clear": "清除",
+    "waypoint": "航點",
+    "deletePoint": "刪除點",
+    "addWaypoint": "新增航點",
+    "editWaypoint": "編輯航點",
+    "deleteWaypoint": "刪除航點",
+    "waypointNamePlaceholder": "航點名稱（選填）",
+    "waypointNeedsPointTitle": "請先新增路線點",
+    "waypointNeedsPointMessage": "點按地圖以新增路線點，再放置航點。",
+    "recomputeElevation": "海拔離線 — 點按重試",
+    "emptyHint": "點按地圖開始繪製你的路線。",
+    "saveRoute": "儲存路線",
+    "routeNamePlaceholder": "路線名稱",
+    "regionPlaceholder": "區域（選填）",
+    "nameRequiredTitle": "需要名稱",
+    "nameRequiredMessage": "儲存前請先為路線命名。",
+    "saveFailedTitle": "儲存失敗",
+    "saveFailedMessage": "無法儲存路線。",
+    "savedTitle": "路線已儲存",
+    "savedSubtitle": "完成你的行前檢查清單，再開啟路線下載離線地圖。",
+    "openRoute": "開啟路線",
+    "discardTitle": "捨棄路線？",
+    "discardMessage": "你繪製的路線將會遺失。"
+  },
+  "waypointTypes": {
+    "water": "水源",
+    "campsite": "營地",
+    "peak": "山頂",
+    "junction": "岔路",
+    "hut": "山屋",
+    "view": "展望",
+    "other": "其他"
+  },
+  "checklist": {
+    "sections": {
+      "navigation": "導航",
+      "supplies": "飲水與食物",
+      "safety": "安全",
+      "weather": "天氣與衣物"
+    },
+    "items": {
+      "offlineMap": "已下載離線地圖",
+      "routeShared": "已分享路線與返回時間",
+      "compass": "指北針／GPS 正常",
+      "water": "足夠的飲水",
+      "food": "食物與行動糧",
+      "powerBank": "已充電的行動電源",
+      "firstAid": "急救包",
+      "headlamp": "頭燈",
+      "whistle": "哨子",
+      "rainGear": "雨具",
+      "layers": "保暖衣物",
+      "forecast": "已查看天氣預報"
+    }
+  },
+  "difficulty": {
+    "easy": "簡單",
+    "moderate": "中等",
+    "hard": "困難",
+    "expert": "專家"
+  },
+  "weather": {
+    "clear": "晴",
+    "partlyCloudy": "多雲時晴",
+    "overcast": "陰天",
+    "fog": "霧",
+    "drizzle": "毛毛雨",
+    "rain": "雨",
+    "snow": "雪",
+    "rainShowers": "陣雨",
+    "snowShowers": "陣雪",
+    "thunderstorm": "雷雨",
+    "cloudy": "多雲"
+  },
+  "units": {
+    "m": "公尺",
+    "km": "公里",
+    "kmh": "公里/時",
+    "perKm": "/公里",
+    "gpsGood": "良好",
+    "gpsFair": "普通",
+    "gpsPoor": "不佳",
+    "cardinals": {
+      "N": "北",
+      "NE": "東北",
+      "E": "東",
+      "SE": "東南",
+      "S": "南",
+      "SW": "西南",
+      "W": "西",
+      "NW": "西北"
+    }
+  },
+  "sos": {
+    "emergencyHeader": "緊急 — 我需要協助。我目前的位置：",
+    "latLon": "緯度：{{lat}}，經度：{{lon}}",
+    "altitude": "海拔：{{value}} 公尺",
+    "accuracy": "精確度：±{{value}} 公尺",
+    "map": "地圖：{{url}}",
+    "sentFrom": "由 Hiker 於 {{time}} 傳送"
+  }
+}

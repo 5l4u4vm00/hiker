@@ -1,37 +1,45 @@
-/** Offline emergency reference for hikers in Taiwan. Available without network. */
+import type { ParseKeys } from 'i18next';
+
+/**
+ * Offline emergency reference for hikers in Taiwan. Available without network.
+ * Phone numbers are data; the `labelKey`/`noteKey` resolve to translated text
+ * (see `safety.numbers.*` / `safety.tips.*` in the i18n resources) so the Safety
+ * screen can render them in the active language.
+ */
 export interface EmergencyNumber {
-  label: string;
+  labelKey: ParseKeys;
   number: string;
-  note: string;
+  noteKey: ParseKeys;
 }
 
 export const TAIWAN_EMERGENCY_NUMBERS: EmergencyNumber[] = [
   {
-    label: 'Fire / Ambulance / Mountain Rescue',
+    labelKey: 'safety.numbers.fireAmbulance.label',
     number: '119',
-    note: 'Primary number for medical and mountain rescue emergencies.',
+    noteKey: 'safety.numbers.fireAmbulance.note',
   },
   {
-    label: 'Police',
+    labelKey: 'safety.numbers.police.label',
     number: '110',
-    note: 'Police emergencies.',
+    noteKey: 'safety.numbers.police.note',
   },
   {
-    label: 'Mobile Emergency (no SIM / roaming)',
+    labelKey: 'safety.numbers.mobile.label',
     number: '112',
-    note: 'Works on any network, even without a SIM card or signal from your carrier.',
+    noteKey: 'safety.numbers.mobile.note',
   },
   {
-    label: 'National Park Rescue (NPR hotline)',
+    labelKey: 'safety.numbers.nationalPark.label',
     number: '+886-7-6686151',
-    note: 'Yushan National Park HQ. Check the relevant park for your specific area.',
+    noteKey: 'safety.numbers.nationalPark.note',
   },
 ];
 
-export const SAFETY_TIPS: string[] = [
-  'Share your route and expected return time with someone before you set off.',
-  'Download offline maps for your area in Settings before losing signal.',
-  'Keep your phone in battery-saving mode and carry a power bank.',
-  'If lost, stay put, keep warm, and make yourself visible to rescuers.',
-  'Dial 112 if you have no signal from your own carrier — it uses any available network.',
+/** Keys for the safety tips, resolved via `safety.tips.*` in the active language. */
+export const SAFETY_TIP_KEYS: ParseKeys[] = [
+  'safety.tips.shareRoute',
+  'safety.tips.offlineMaps',
+  'safety.tips.battery',
+  'safety.tips.ifLost',
+  'safety.tips.dial112',
 ];

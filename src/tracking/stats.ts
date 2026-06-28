@@ -1,4 +1,5 @@
 import type { TrackPoint } from '@/db/types';
+import i18n from '@/i18n';
 
 const EARTH_RADIUS_M = 6371000;
 
@@ -132,14 +133,59 @@ export function computeStats(points: TrackPoint[]): ComputedStats {
   };
 }
 
+/**
+ * Cumulative elevation gain (m) from a sequence of point elevations, applying
+ * the same noise threshold as {@link computeStats}. `null` entries (points whose
+ * elevation is unknown) are skipped. Shared by GPX import and route planning so
+ * both derive ascent the same way.
+ */
+export function ascentFromElevations(elevations: (number | null)[]): number {
+  let ascentM = 0;
+  let refEle: number | null = null;
+  for (const ele of elevations) {
+    if (ele == null) continue;
+    if (refEle == null) refEle = ele;
+    else if (ele - refEle >= ELEVATION_THRESHOLD_M) {
+      ascentM += ele - refEle;
+      refEle = ele;
+    } else if (refEle - ele >= ELEVATION_THRESHOLD_M) {
+      refEle = ele;
+    }
+  }
+  return ascentM;
+}
+
+/**
+ * Total length (m) of a `[lon, lat]` polyline, summing the great-circle distance
+ * between consecutive vertices. Returns 0 for fewer than two points.
+ */
+export function distanceOf(points: [number, number][]): number {
+  let distanceM = 0;
+  for (let i = 1; i < points.length; i++) {
+    distanceM += haversine(
+      { lat: points[i - 1][1], lon: points[i - 1][0] },
+      { lat: points[i][1], lon: points[i][0] },
+    );
+  }
+  return distanceM;
+}
+
+/**
+ * Estimated walking time (s) by Naismith's rule: ~12 min per km of distance plus
+ * 1 hour per 600 m of ascent. A planning estimate, not a guarantee.
+ */
+export function naismithSeconds(distanceM: number, ascentM: number): number {
+  return (distanceM / 1000) * 12 * 60 + (Math.max(0, ascentM) / 600) * 3600;
+}
+
 export function formatDistance(meters: number): string {
-  if (meters < 1000) return `${Math.round(meters)} m`;
-  return `${(meters / 1000).toFixed(2)} km`;
+  if (meters < 1000) return `${Math.round(meters)} ${i18n.t('units.m')}`;
+  return `${(meters / 1000).toFixed(2)} ${i18n.t('units.km')}`;
 }
 
 export function formatElevation(meters: number | null): string {
   if (meters == null) return '--';
-  return `${Math.round(meters)} m`;
+  return `${Math.round(meters)} ${i18n.t('units.m')}`;
 }
 
 export function formatDuration(seconds: number): string {
@@ -156,13 +202,13 @@ export function formatPace(distanceM: number, durationS: number): string {
   const paceSecPerKm = durationS / (distanceM / 1000);
   const m = Math.floor(paceSecPerKm / 60);
   const s = Math.round(paceSecPerKm % 60);
-  return `${m}:${String(s).padStart(2, '0')} /km`;
+  return `${m}:${String(s).padStart(2, '0')} ${i18n.t('units.perKm')}`;
 }
 
 /** Speed in km/h, formatted as `X.X km/h`. */
 export function formatSpeed(mps: number | null): string {
   if (mps == null || !Number.isFinite(mps) || mps < 0) return '--';
-  return `${(mps * 3.6).toFixed(1)} km/h`;
+  return `${(mps * 3.6).toFixed(1)} ${i18n.t('units.kmh')}`;
 }
 
 const CARDINALS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
@@ -170,7 +216,7 @@ const CARDINALS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
 /** 8-point cardinal direction for a heading in degrees clockwise from north. */
 export function cardinal(deg: number): string {
   const i = Math.round((((deg % 360) + 360) % 360) / 45) % 8;
-  return CARDINALS[i];
+  return i18n.t(`units.cardinals.${CARDINALS[i]}`);
 }
 
 /** Heading formatted as `NE 45°`, or `--` if unavailable. */
@@ -192,9 +238,9 @@ export function formatGpsQuality(accuracyM: number | null): GpsQuality {
   if (accuracyM == null || !Number.isFinite(accuracyM) || accuracyM < 0) {
     return { label: '--' };
   }
-  if (accuracyM <= 10) return { label: 'Good' };
-  if (accuracyM <= 25) return { label: 'Fair' };
-  return { label: 'Poor', tint: WARNING_COLOR };
+  if (accuracyM <= 10) return { label: i18n.t('units.gpsGood') };
+  if (accuracyM <= 25) return { label: i18n.t('units.gpsFair') };
+  return { label: i18n.t('units.gpsPoor'), tint: WARNING_COLOR };
 }
 
 /** Compact duration as `Xh Ym`, `Ym`, or `<1m` for short spans. */

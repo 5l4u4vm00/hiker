@@ -1,6 +1,7 @@
-import { GeoJSONSource, type CameraRef, Layer } from '@maplibre/maplibre-react-native';
+import { GeoJSONSource, type LngLatBounds, Layer } from '@maplibre/maplibre-react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { MapCanvas } from '@/components/map-canvas';
@@ -15,6 +16,7 @@ import type { JournalEntry, Track, TrackPoint } from '@/db/types';
 import { shareTrackAsGpx } from '@/gpx/export';
 import { useTheme } from '@/hooks/use-theme';
 import { pointsToLineString } from '@/map/mapStyle';
+import { useFollowStore } from '@/state/followStore';
 import { daylight, formatClock } from '@/sun/daylight';
 import {
   computeStats,
@@ -27,7 +29,7 @@ import {
 } from '@/tracking/stats';
 import { weatherIcon, weatherLabel } from '@/weather/weatherCodes';
 
-function boundsOf(points: TrackPoint[]): [number, number, number, number] | null {
+function boundsOf(points: TrackPoint[]): LngLatBounds | null {
   if (points.length === 0) return null;
   let west = points[0].lon;
   let east = points[0].lon;
@@ -45,11 +47,11 @@ function boundsOf(points: TrackPoint[]): [number, number, number, number] | null
 export default function HikeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const { t } = useTranslation();
   const [track, setTrack] = useState<Track | null>(null);
   const [points, setPoints] = useState<TrackPoint[]>([]);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [note, setNote] = useState('');
-  const cameraRef = useRef<CameraRef>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -59,16 +61,6 @@ export default function HikeDetailScreen() {
       setEntries(await getJournalEntries(id));
     })();
   }, [id]);
-
-  useEffect(() => {
-    const bounds = boundsOf(points);
-    if (bounds && cameraRef.current) {
-      cameraRef.current.fitBounds([bounds[0], bounds[1], bounds[2], bounds[3]], {
-        padding: { top: 40, right: 40, bottom: 40, left: 40 },
-        duration: 600,
-      });
-    }
-  }, [points]);
 
   const onAddNote = async () => {
     if (!id || !note.trim()) return;
@@ -81,12 +73,18 @@ export default function HikeDetailScreen() {
     if (track) await shareTrackAsGpx(track, points);
   };
 
+  const onFollow = () => {
+    if (!id) return;
+    useFollowStore.getState().follow('track', id);
+    router.navigate('/(tabs)');
+  };
+
   const onDelete = () => {
     if (!id) return;
-    Alert.alert('Delete hike?', 'This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('hikeDetail.deleteTitle'), t('hikeDetail.deleteMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           await deleteTrack(id);
@@ -99,7 +97,7 @@ export default function HikeDetailScreen() {
   if (!track) {
     return (
       <ThemedView style={styles.center}>
-        <ThemedText themeColor="textSecondary">Loading…</ThemedText>
+        <ThemedText themeColor="textSecondary">{t('common.loading')}</ThemedText>
       </ThemedView>
     );
   }
@@ -110,13 +108,14 @@ export default function HikeDetailScreen() {
   const avgMovingSpeed = extended.movingTimeS >= 1 ? extended.distanceM / extended.movingTimeS : null;
   const startSun =
     points.length > 0 ? daylight(points[0].lat, points[0].lon, track.startedAt) : null;
+  const bounds = boundsOf(points) ?? undefined;
 
   return (
     <ThemedView style={styles.container}>
       <Stack.Screen options={{ title: track.name }} />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.mapWrap}>
-          <MapCanvas ref={cameraRef} showUser={false}>
+          <MapCanvas bounds={bounds} showUser={false}>
             {points.length > 1 ? (
               <GeoJSONSource id="hike-track" data={pointsToLineString(points)}>
                 <Layer
@@ -136,17 +135,17 @@ export default function HikeDetailScreen() {
           </ThemedText>
 
           <StatGrid>
-            <StatCard label="Distance" value={formatDistance(track.distanceM)} />
-            <StatCard label="Duration" value={formatDuration(track.durationS)} />
-            <StatCard label="Moving time" value={formatDuration(extended.movingTimeS)} />
-            <StatCard label="Ascent" value={formatElevation(track.ascentM)} />
-            <StatCard label="Descent" value={formatElevation(track.descentM)} />
-            <StatCard label="Max alt" value={formatElevation(track.maxAlt)} />
-            <StatCard label="Avg speed" value={formatSpeed(avgMovingSpeed)} />
-            <StatCard label="Max speed" value={formatSpeed(extended.maxSpeed)} />
-            <StatCard label="Pace" value={formatPace(track.distanceM, track.durationS)} />
+            <StatCard label={t('hikeDetail.distance')} value={formatDistance(track.distanceM)} />
+            <StatCard label={t('hikeDetail.duration')} value={formatDuration(track.durationS)} />
+            <StatCard label={t('hikeDetail.movingTime')} value={formatDuration(extended.movingTimeS)} />
+            <StatCard label={t('hikeDetail.ascent')} value={formatElevation(track.ascentM)} />
+            <StatCard label={t('hikeDetail.descent')} value={formatElevation(track.descentM)} />
+            <StatCard label={t('hikeDetail.maxAlt')} value={formatElevation(track.maxAlt)} />
+            <StatCard label={t('hikeDetail.avgSpeed')} value={formatSpeed(avgMovingSpeed)} />
+            <StatCard label={t('hikeDetail.maxSpeed')} value={formatSpeed(extended.maxSpeed)} />
+            <StatCard label={t('hikeDetail.pace')} value={formatPace(track.distanceM, track.durationS)} />
             {startSun ? (
-              <StatCard label="Sunset" value={formatClock(startSun.sunsetMs)} />
+              <StatCard label={t('hikeDetail.sunset')} value={formatClock(startSun.sunsetMs)} />
             ) : null}
             {track.weatherCode != null ? (
               <StatCard
@@ -157,18 +156,22 @@ export default function HikeDetailScreen() {
             ) : null}
           </StatGrid>
 
-          <ThemedText style={styles.sectionTitle}>Notes</ThemedText>
+          {points.length > 1 ? (
+            <PrimaryButton title={t('hikeDetail.followOnMap')} onPress={onFollow} />
+          ) : null}
+
+          <ThemedText style={styles.sectionTitle}>{t('hikeDetail.notes')}</ThemedText>
           <View style={styles.noteRow}>
             <TextInput
               value={note}
               onChangeText={setNote}
-              placeholder="Add a note about this hike"
+              placeholder={t('hikeDetail.notePlaceholder')}
               placeholderTextColor={theme.textSecondary}
               multiline
               style={[styles.noteInput, { color: theme.text, borderColor: theme.textSecondary }]}
             />
           </View>
-          <PrimaryButton title="Add note" variant="neutral" onPress={onAddNote} />
+          <PrimaryButton title={t('hikeDetail.addNote')} variant="neutral" onPress={onAddNote} />
 
           {entries.map((e) => (
             <ThemedView key={e.id} type="backgroundElement" style={styles.entry}>
@@ -180,8 +183,13 @@ export default function HikeDetailScreen() {
           ))}
 
           <View style={styles.actions}>
-            <PrimaryButton title="Export GPX" onPress={onExport} style={styles.flex} />
-            <PrimaryButton title="Delete" variant="danger" onPress={onDelete} style={styles.flex} />
+            <PrimaryButton title={t('hikeDetail.exportGpx')} onPress={onExport} style={styles.flex} />
+            <PrimaryButton
+              title={t('common.delete')}
+              variant="danger"
+              onPress={onDelete}
+              style={styles.flex}
+            />
           </View>
         </View>
       </ScrollView>
