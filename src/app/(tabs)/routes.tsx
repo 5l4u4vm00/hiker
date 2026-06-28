@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import {
   searchRoutesByName,
   searchRoutesNearby,
@@ -29,6 +29,7 @@ import {
 import { listRegions, queryRoutes } from '@/db/routes';
 import type { Route } from '@/db/types';
 import { importGpxFromPicker } from '@/gpx/import';
+import { listDownloadedRegions } from '@/map/offlineTiles';
 import { useRoutePreviewStore } from '@/state/routePreviewStore';
 import { useTheme } from '@/hooks/use-theme';
 import { getCurrentCoordinates } from '@/safety/sos';
@@ -40,6 +41,11 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   hard: '#E5484D',
   expert: '#8E4EC6',
 };
+
+/** Card accent for routes without a graded difficulty. */
+const NEUTRAL_ACCENT = '#6B7280';
+const ACCENT = '#208AEF';
+const SUCCESS = '#30A46C';
 
 /** Minimum query length before an online search fires (keeps Overpass load down). */
 const MIN_SEARCH_LENGTH = 3;
@@ -68,6 +74,8 @@ export default function RoutesScreen() {
   const [query, setQuery] = useState('');
   const [region, setRegion] = useState<string | null>(null);
   const [origin, setOrigin] = useState<{ lat: number; lon: number } | null>(null);
+  // Ids of saved routes whose offline tile pack is already downloaded.
+  const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set());
 
   // Live online search (transient — only persisted when the user opens one).
   const [liveResults, setLiveResults] = useState<OverpassRouteResult[]>([]);
@@ -89,10 +97,25 @@ export default function RoutesScreen() {
     setRegions(await listRegions());
   }, []);
 
+  // Map downloaded tile packs (keyed `route-<id>`) back to route ids so the list
+  // can flag which saved routes already work offline.
+  const loadDownloaded = useCallback(async () => {
+    const packs = await listDownloadedRegions();
+    setDownloadedIds(
+      new Set(
+        packs
+          .map((p) => p.key)
+          .filter((k) => k.startsWith('route-'))
+          .map((k) => k.slice('route-'.length)),
+      ),
+    );
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       const { query: q, region: r } = filtersRef.current;
       reload(q, r);
+      loadDownloaded();
       // Acquire the location fix only once so typing never re-prompts.
       if (!hasLocation.current) {
         hasLocation.current = true;
@@ -100,7 +123,7 @@ export default function RoutesScreen() {
           if (coords) setOrigin({ lat: coords.lat, lon: coords.lon });
         });
       }
-    }, [reload]),
+    }, [reload, loadDownloaded]),
   );
 
   useEffect(
@@ -194,6 +217,22 @@ export default function RoutesScreen() {
     }
   }, [reload, query, region, t]);
 
+  // Rare actions live behind an overflow menu so the header stays uncluttered.
+  const onMore = useCallback(() => {
+    Alert.alert(t('routes.moreActions'), undefined, [
+      { text: t('routes.importGpxFromFile'), onPress: onImport },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
+  }, [onImport, t]);
+
+  const onClear = useCallback(() => {
+    setQuery('');
+    filtersRef.current = { ...filtersRef.current, query: '' };
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    clearLiveSearch();
+    reload('', region);
+  }, [clearLiveSearch, reload, region]);
+
   // Preview a live result without saving it — the detail screen renders the
   // in-memory preview and only persists it on download or follow.
   const onOpenLive = useCallback((result: OverpassRouteResult) => {
@@ -211,8 +250,9 @@ export default function RoutesScreen() {
     } else {
       await reload(query, region);
     }
+    await loadDownloaded();
     setRefreshing(false);
-  }, [liveActive, query, region, reload, runSearch]);
+  }, [liveActive, query, region, reload, runSearch, loadDownloaded]);
 
   // Sort saved routes by proximity when a location fix is available.
   const sortedSaved = origin
@@ -248,24 +288,29 @@ export default function RoutesScreen() {
         <View style={styles.headerActions}>
           <Pressable
             onPress={() => router.push('/plan')}
-            style={styles.headerButton}
-            accessibilityRole="button">
-            <Ionicons name="create-outline" size={18} color="#208AEF" />
-            <ThemedText type="linkPrimary">{t('routes.planRoute')}</ThemedText>
+            style={styles.planButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('routes.planRoute')}>
+            <Ionicons name="add" size={18} color="#ffffff" />
+            <ThemedText style={styles.planLabel}>{t('routes.planRoute')}</ThemedText>
           </Pressable>
-          <Pressable onPress={onNearby} style={styles.headerButton} accessibilityRole="button">
-            <Ionicons name="navigate-outline" size={18} color="#208AEF" />
-            <ThemedText type="linkPrimary">{t('routes.nearMe')}</ThemedText>
-          </Pressable>
-          <Pressable onPress={onImport} style={styles.headerButton} accessibilityRole="button">
-            <Ionicons name="download-outline" size={18} color="#208AEF" />
-            <ThemedText type="linkPrimary">{t('routes.importGpx')}</ThemedText>
+          <Pressable
+            onPress={onMore}
+            hitSlop={8}
+            style={styles.iconButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('routes.moreActions')}>
+            <Ionicons name="ellipsis-horizontal" size={22} color={theme.text} />
           </Pressable>
         </View>
       </View>
 
-      <View style={[styles.searchBox, { backgroundColor: Colors.light.backgroundElement }]}>
-        <Ionicons name="search" size={18} color={theme.textSecondary} />
+      <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement }]}>
+        {searching ? (
+          <ActivityIndicator size="small" color={theme.textSecondary} />
+        ) : (
+          <Ionicons name="search" size={18} color={theme.textSecondary} />
+        )}
         <TextInput
           value={query}
           onChangeText={onSearch}
@@ -273,6 +318,26 @@ export default function RoutesScreen() {
           placeholderTextColor={theme.textSecondary}
           style={[styles.searchInput, { color: theme.text }]}
         />
+        {query.length > 0 ? (
+          <Pressable
+            onPress={onClear}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('routes.clearSearch')}>
+            <Ionicons name="close-circle" size={18} color={theme.textSecondary} />
+          </Pressable>
+        ) : null}
+        <Pressable
+          onPress={onNearby}
+          hitSlop={8}
+          style={[styles.nearMeButton, { borderLeftColor: theme.backgroundSelected }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('routes.nearMe')}>
+          <Ionicons name="navigate" size={15} color={ACCENT} />
+          <ThemedText type="small" style={styles.nearMeLabel}>
+            {t('routes.nearMe')}
+          </ThemedText>
+        </Pressable>
       </View>
 
       {regions.length > 0 ? (
@@ -331,9 +396,12 @@ export default function RoutesScreen() {
           ) : null
         }
         ListEmptyComponent={
-          <ThemedText themeColor="textSecondary" style={styles.empty}>
-            {t('routes.noSavedRoutes')}
-          </ThemedText>
+          <View style={styles.empty}>
+            <Ionicons name="trail-sign-outline" size={40} color={theme.textSecondary} />
+            <ThemedText themeColor="textSecondary" style={styles.emptyText}>
+              {t('routes.noSavedRoutes')}
+            </ThemedText>
+          </View>
         }
         renderItem={({ item, section }) => (
           <Pressable
@@ -342,7 +410,12 @@ export default function RoutesScreen() {
                 ? onOpenLive(item as OverpassRouteResult)
                 : router.push(`/route/${(item as Route).id}`)
             }>
-            <RouteCard item={item} origin={origin} live={section.kind === 'osm'} />
+            <RouteCard
+              item={item}
+              origin={origin}
+              live={section.kind === 'osm'}
+              downloaded={section.kind === 'saved' && downloadedIds.has((item as Route).id)}
+            />
           </Pressable>
         )}
       />
@@ -354,52 +427,82 @@ function RouteCard({
   item,
   origin,
   live,
+  downloaded,
 }: {
   item: RouteListItem;
   origin: { lat: number; lon: number } | null;
   live: boolean;
+  downloaded: boolean;
 }) {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const accent = item.difficulty ? (DIFFICULTY_COLORS[item.difficulty] ?? NEUTRAL_ACCENT) : NEUTRAL_ACCENT;
+  const awayM = origin ? nearestPointDistanceM(origin, item.geometry.coordinates) : null;
+
   return (
-    <ThemedView type="backgroundElement" style={styles.card}>
+    <ThemedView type="backgroundElement" style={[styles.card, { borderLeftColor: accent }]}>
       <View style={styles.cardTop}>
         <ThemedText style={styles.cardTitle}>{item.name}</ThemedText>
-        {item.difficulty ? (
-          <View
-            style={[
-              styles.badge,
-              { backgroundColor: DIFFICULTY_COLORS[item.difficulty] ?? '#6B7280' },
-            ]}>
-            <ThemedText style={styles.badgeText}>
-              {t(`difficulty.${item.difficulty}`, item.difficulty)}
+        {downloaded ? (
+          <View style={styles.statusTag}>
+            <Ionicons name="cloud-done" size={14} color={SUCCESS} />
+            <ThemedText type="small" style={styles.offlineLabel}>
+              {t('routes.offline')}
+            </ThemedText>
+          </View>
+        ) : live ? (
+          <View style={styles.statusTag}>
+            <Ionicons name="cloud-outline" size={14} color={theme.textSecondary} />
+            <ThemedText type="small" themeColor="textSecondary">
+              {t('routes.online')}
             </ThemedText>
           </View>
         ) : null}
       </View>
+
       {item.region ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          {item.region}
-        </ThemedText>
+        <View style={styles.metaRow}>
+          <Ionicons name="location-outline" size={13} color={theme.textSecondary} />
+          <ThemedText type="small" themeColor="textSecondary">
+            {item.region}
+          </ThemedText>
+        </View>
+      ) : null}
+
+      <View style={styles.statRow}>
+        {item.difficulty ? (
+          <RouteStat dotColor={accent} value={t(`difficulty.${item.difficulty}`, item.difficulty)} />
+        ) : null}
+        <RouteStat icon="swap-horizontal" value={formatDistance(item.distanceM)} />
+        <RouteStat icon="trending-up" value={formatElevation(item.ascentM)} />
+        {awayM != null ? <RouteStat icon="navigate-outline" value={formatDistance(awayM)} /> : null}
+      </View>
+    </ThemedView>
+  );
+}
+
+/** A compact icon/value (or colored-dot/value) pair used in a route card's stat row. */
+function RouteStat({
+  icon,
+  dotColor,
+  value,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  dotColor?: string;
+  value: string;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={styles.stat}>
+      {dotColor ? (
+        <View style={[styles.dot, { backgroundColor: dotColor }]} />
+      ) : icon ? (
+        <Ionicons name={icon} size={14} color={theme.textSecondary} />
       ) : null}
       <ThemedText type="small" themeColor="textSecondary">
-        {t('routes.routeStats', {
-          distance: formatDistance(item.distanceM),
-          ascent: formatElevation(item.ascentM),
-        })}
+        {value}
       </ThemedText>
-      {origin ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          {t('routes.away', {
-            distance: formatDistance(nearestPointDistanceM(origin, item.geometry.coordinates)),
-          })}
-        </ThemedText>
-      ) : null}
-      {live ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          {t('routes.tapToSave')}
-        </ThemedText>
-      ) : null}
-    </ThemedView>
+    </View>
   );
 }
 
@@ -439,8 +542,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  headerButton: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  planButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    backgroundColor: ACCENT,
+    paddingLeft: Spacing.two,
+    paddingRight: Spacing.three,
+    paddingVertical: Spacing.one + 2,
+    borderRadius: Spacing.four,
+  },
+  planLabel: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
+  iconButton: { padding: Spacing.one },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -450,6 +564,15 @@ const styles = StyleSheet.create({
     height: 44,
   },
   searchInput: { flex: 1, fontSize: 16 },
+  nearMeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    borderLeftWidth: 1,
+    paddingLeft: Spacing.two,
+    marginLeft: Spacing.half,
+  },
+  nearMeLabel: { color: ACCENT, fontWeight: '600' },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -475,10 +598,25 @@ const styles = StyleSheet.create({
   },
   sectionTitle: { textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: '600' },
   sectionEmpty: { paddingVertical: Spacing.two },
-  card: { padding: Spacing.three, borderRadius: Spacing.three, gap: Spacing.half },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  card: {
+    padding: Spacing.three,
+    borderRadius: Spacing.three,
+    borderLeftWidth: 3,
+    gap: Spacing.two,
+  },
+  cardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
   cardTitle: { fontSize: 17, fontWeight: '600', flexShrink: 1 },
-  badge: { paddingHorizontal: Spacing.two, paddingVertical: 2, borderRadius: Spacing.one },
-  badgeText: { color: '#fff', fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
-  empty: { textAlign: 'center', marginTop: Spacing.six },
+  statusTag: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
+  offlineLabel: { color: SUCCESS, fontWeight: '600' },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
+  statRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: Spacing.three },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  empty: { alignItems: 'center', gap: Spacing.two, marginTop: Spacing.six },
+  emptyText: { textAlign: 'center', paddingHorizontal: Spacing.four },
 });
