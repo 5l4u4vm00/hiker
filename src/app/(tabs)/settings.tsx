@@ -1,5 +1,13 @@
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -124,37 +132,43 @@ export default function SettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={{
-          padding: Spacing.four,
-          paddingTop: insets.top + Spacing.three,
-          paddingBottom: insets.bottom + Spacing.six,
-          gap: Spacing.four,
-        }}>
-        <ThemedText type="subtitle">{t('settings.title')}</ThemedText>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={{
+            padding: Spacing.four,
+            paddingTop: insets.top + Spacing.three,
+            paddingBottom: insets.bottom + Spacing.six,
+            gap: Spacing.four,
+          }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive">
+          <ThemedText type="subtitle">{t('settings.title')}</ThemedText>
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>{t('settings.appearance')}</ThemedText>
-          <ThemeSegmentedControl />
-        </View>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>{t('settings.appearance')}</ThemedText>
+            <ThemeSegmentedControl />
+          </View>
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>{t('settings.language')}</ThemedText>
-          <LanguageSegmentedControl />
-        </View>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>{t('settings.language')}</ThemedText>
+            <LanguageSegmentedControl />
+          </View>
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>{t('settings.map')}</ThemedText>
-          <MapTokenField />
-        </View>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>{t('settings.map')}</ThemedText>
+            <MapTokenField />
+          </View>
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>{t('settings.about')}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            {t('settings.aboutText')}
-          </ThemedText>
-        </View>
-      </ScrollView>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>{t('settings.about')}</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {t('settings.aboutText')}
+            </ThemedText>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }

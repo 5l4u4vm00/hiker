@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -453,61 +455,65 @@ function SaveSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <ThemedView style={styles.sheet}>
-        <ThemedText type="subtitle" style={styles.sheetHeading}>
-          {t('plan.saveRoute')}
-        </ThemedText>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <ThemedView style={styles.sheet}>
+          <ThemedText type="subtitle" style={styles.sheetHeading}>
+            {t('plan.saveRoute')}
+          </ThemedText>
 
-        <View style={[styles.inputBox, { backgroundColor: theme.backgroundElement }]}>
-          <TextInput
-            value={name}
-            onChangeText={(text) => setMeta({ name: text })}
-            placeholder={t('plan.routeNamePlaceholder')}
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text }]}
-            autoFocus
-          />
-        </View>
+          <View style={[styles.inputBox, { backgroundColor: theme.backgroundElement }]}>
+            <TextInput
+              value={name}
+              onChangeText={(text) => setMeta({ name: text })}
+              placeholder={t('plan.routeNamePlaceholder')}
+              placeholderTextColor={theme.textSecondary}
+              style={[styles.input, { color: theme.text }]}
+              autoFocus
+            />
+          </View>
 
-        <View style={[styles.inputBox, { backgroundColor: theme.backgroundElement }]}>
-          <TextInput
-            value={region ?? ''}
-            onChangeText={(text) => setMeta({ region: text })}
-            placeholder={t('plan.regionPlaceholder')}
-            placeholderTextColor={theme.textSecondary}
-            style={[styles.input, { color: theme.text }]}
-          />
-        </View>
+          <View style={[styles.inputBox, { backgroundColor: theme.backgroundElement }]}>
+            <TextInput
+              value={region ?? ''}
+              onChangeText={(text) => setMeta({ region: text })}
+              placeholder={t('plan.regionPlaceholder')}
+              placeholderTextColor={theme.textSecondary}
+              style={[styles.input, { color: theme.text }]}
+            />
+          </View>
 
-        <View style={styles.difficultyRow}>
-          {DIFFICULTIES.map((d) => {
-            const selected = difficulty === d;
-            return (
-              <Pressable
-                key={d}
-                onPress={() => setMeta({ difficulty: selected ? null : d })}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                style={[
-                  styles.difficultyChip,
-                  { backgroundColor: selected ? DIFFICULTY_COLORS[d] : theme.backgroundElement },
-                ]}>
-                <ThemedText
-                  type="small"
-                  style={{ color: selected ? '#ffffff' : theme.textSecondary }}>
-                  {t(`difficulty.${d}`)}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
+          <View style={styles.difficultyRow}>
+            {DIFFICULTIES.map((d) => {
+              const selected = difficulty === d;
+              return (
+                <Pressable
+                  key={d}
+                  onPress={() => setMeta({ difficulty: selected ? null : d })}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  style={[
+                    styles.difficultyChip,
+                    { backgroundColor: selected ? DIFFICULTY_COLORS[d] : theme.backgroundElement },
+                  ]}>
+                  <ThemedText
+                    type="small"
+                    style={{ color: selected ? '#ffffff' : theme.textSecondary }}>
+                    {t(`difficulty.${d}`)}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
 
-        <PrimaryButton title={t('common.save')} onPress={onConfirm} loading={saving} />
-        <Pressable onPress={onClose} accessibilityRole="button" style={styles.cancel}>
-          <ThemedText themeColor="textSecondary">{t('common.cancel')}</ThemedText>
-        </Pressable>
-      </ThemedView>
+          <PrimaryButton title={t('common.save')} onPress={onConfirm} loading={saving} />
+          <Pressable onPress={onClose} accessibilityRole="button" style={styles.cancel}>
+            <ThemedText themeColor="textSecondary">{t('common.cancel')}</ThemedText>
+          </Pressable>
+        </ThemedView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

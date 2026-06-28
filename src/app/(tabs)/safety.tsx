@@ -2,7 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@/components/primary-button';
@@ -85,91 +94,97 @@ export default function SafetyScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={{
-          padding: Spacing.four,
-          paddingTop: insets.top + Spacing.three,
-          paddingBottom: insets.bottom + Spacing.six,
-          gap: Spacing.four,
-        }}>
-        <ThemedText type="subtitle">{t('safety.title')}</ThemedText>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={{
+            padding: Spacing.four,
+            paddingTop: insets.top + Spacing.three,
+            paddingBottom: insets.bottom + Spacing.six,
+            gap: Spacing.four,
+          }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive">
+          <ThemedText type="subtitle">{t('safety.title')}</ThemedText>
 
-        <PrimaryButton
-          title={t('safety.sendSos')}
-          variant="danger"
-          onPress={handleSos}
-          loading={sending}
-        />
+          <PrimaryButton
+            title={t('safety.sendSos')}
+            variant="danger"
+            onPress={handleSos}
+            loading={sending}
+          />
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>{t('safety.contacts')}</ThemedText>
-          {contacts.map((c) => (
-            <ThemedView key={c.id} type="backgroundElement" style={styles.contactRow}>
-              <View style={styles.flex}>
-                <ThemedText style={styles.contactName}>{c.name}</ThemedText>
-                <ThemedText type="small" themeColor="textSecondary">
-                  {c.phone}
-                </ThemedText>
-              </View>
-              <Pressable onPress={() => callNumber(c.phone)} hitSlop={8}>
-                <Ionicons name="call" size={20} color="#208AEF" />
-              </Pressable>
-              <Pressable onPress={() => handleDeleteContact(c.id)} hitSlop={8}>
-                <Ionicons name="trash" size={20} color="#E5484D" />
-              </Pressable>
-            </ThemedView>
-          ))}
-          <View style={styles.addRow}>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder={t('safety.namePlaceholder')}
-              placeholderTextColor={theme.textSecondary}
-              style={[styles.input, { color: theme.text, borderColor: theme.textSecondary }]}
-            />
-            <TextInput
-              value={phone}
-              onChangeText={setPhone}
-              placeholder={t('safety.phonePlaceholder')}
-              keyboardType="phone-pad"
-              placeholderTextColor={theme.textSecondary}
-              style={[styles.input, { color: theme.text, borderColor: theme.textSecondary }]}
-            />
-            <Pressable onPress={handleAddContact} style={styles.addButton} hitSlop={8}>
-              <Ionicons name="add-circle" size={32} color="#208AEF" />
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>{t('safety.emergencyNumbers')}</ThemedText>
-          {TAIWAN_EMERGENCY_NUMBERS.map((n) => (
-            <Pressable key={n.number} onPress={() => callNumber(n.number)}>
-              <ThemedView type="backgroundElement" style={styles.numberRow}>
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>{t('safety.contacts')}</ThemedText>
+            {contacts.map((c) => (
+              <ThemedView key={c.id} type="backgroundElement" style={styles.contactRow}>
                 <View style={styles.flex}>
-                  <ThemedText style={styles.contactName}>{t(n.labelKey)}</ThemedText>
+                  <ThemedText style={styles.contactName}>{c.name}</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
-                    {t(n.noteKey)}
+                    {c.phone}
                   </ThemedText>
                 </View>
-                <ThemedText style={styles.number}>{n.number}</ThemedText>
+                <Pressable onPress={() => callNumber(c.phone)} hitSlop={8}>
+                  <Ionicons name="call" size={20} color="#208AEF" />
+                </Pressable>
+                <Pressable onPress={() => handleDeleteContact(c.id)} hitSlop={8}>
+                  <Ionicons name="trash" size={20} color="#E5484D" />
+                </Pressable>
               </ThemedView>
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>{t('safety.safetyTips')}</ThemedText>
-          {SAFETY_TIP_KEYS.map((tipKey) => (
-            <View key={tipKey} style={styles.tipRow}>
-              <Ionicons name="checkmark-circle" size={18} color="#30A46C" />
-              <ThemedText type="small" style={styles.flex}>
-                {t(tipKey)}
-              </ThemedText>
+            ))}
+            <View style={styles.addRow}>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder={t('safety.namePlaceholder')}
+                placeholderTextColor={theme.textSecondary}
+                style={[styles.input, { color: theme.text, borderColor: theme.textSecondary }]}
+              />
+              <TextInput
+                value={phone}
+                onChangeText={setPhone}
+                placeholder={t('safety.phonePlaceholder')}
+                keyboardType="phone-pad"
+                placeholderTextColor={theme.textSecondary}
+                style={[styles.input, { color: theme.text, borderColor: theme.textSecondary }]}
+              />
+              <Pressable onPress={handleAddContact} style={styles.addButton} hitSlop={8}>
+                <Ionicons name="add-circle" size={32} color="#208AEF" />
+              </Pressable>
             </View>
-          ))}
-        </View>
-      </ScrollView>
+          </View>
+
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>{t('safety.emergencyNumbers')}</ThemedText>
+            {TAIWAN_EMERGENCY_NUMBERS.map((n) => (
+              <Pressable key={n.number} onPress={() => callNumber(n.number)}>
+                <ThemedView type="backgroundElement" style={styles.numberRow}>
+                  <View style={styles.flex}>
+                    <ThemedText style={styles.contactName}>{t(n.labelKey)}</ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {t(n.noteKey)}
+                    </ThemedText>
+                  </View>
+                  <ThemedText style={styles.number}>{n.number}</ThemedText>
+                </ThemedView>
+              </Pressable>
+            ))}
+          </View>
+
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionTitle}>{t('safety.safetyTips')}</ThemedText>
+            {SAFETY_TIP_KEYS.map((tipKey) => (
+              <View key={tipKey} style={styles.tipRow}>
+                <Ionicons name="checkmark-circle" size={18} color="#30A46C" />
+                <ThemedText type="small" style={styles.flex}>
+                  {t(tipKey)}
+                </ThemedText>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ThemedView>
   );
 }
