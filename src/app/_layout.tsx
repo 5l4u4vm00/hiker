@@ -37,9 +37,18 @@ export default function RootLayout() {
         <AnimatedSplashOverlay />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="route/[id]" options={{ headerShown: true, title: t('nav.route') }} />
-          <Stack.Screen name="hike/[id]" options={{ headerShown: true, title: t('nav.hike') }} />
-          <Stack.Screen name="plan" options={{ headerShown: true, title: t('plan.title') }} />
+          <Stack.Screen
+            name="route/[id]"
+            options={{ headerShown: true, title: t('nav.route'), headerBackTitle: t('common.back') }}
+          />
+          <Stack.Screen
+            name="hike/[id]"
+            options={{ headerShown: true, title: t('nav.hike'), headerBackTitle: t('common.back') }}
+          />
+          <Stack.Screen
+            name="plan"
+            options={{ headerShown: true, title: t('plan.title'), headerBackTitle: t('common.back') }}
+          />
         </Stack>
       </ThemeProvider>
     </GestureHandlerRootView>

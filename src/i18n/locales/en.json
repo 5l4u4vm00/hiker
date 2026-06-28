@@ -5,7 +5,8 @@
     "delete": "Delete",
     "start": "Start",
     "discard": "Discard",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "back": "Back"
   },
   "tabs": {
     "map": "Map",

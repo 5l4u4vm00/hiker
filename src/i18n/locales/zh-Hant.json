@@ -5,7 +5,8 @@
     "delete": "刪除",
     "start": "開始",
     "discard": "捨棄",
-    "loading": "載入中…"
+    "loading": "載入中…",
+    "back": "返回"
   },
   "tabs": {
     "map": "地圖",
