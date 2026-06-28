@@ -74,6 +74,11 @@ CREATE TABLE IF NOT EXISTS emergency_contacts (
   name TEXT NOT NULL,
   phone TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY NOT NULL,
+  value TEXT NOT NULL
+);
 `;
 
 /**

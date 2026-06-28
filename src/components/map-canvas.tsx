@@ -11,6 +11,7 @@ import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'rea
 
 import { CompassBadge } from '@/components/compass-badge';
 import { UserLocationHeading } from '@/components/user-location-heading';
+import { useTheme } from '@/hooks/use-theme';
 import { DEFAULT_ZOOM, MAP_RASTER_STYLE, TAIWAN_CENTER } from '@/map/mapStyle';
 import { useDeviceHeading } from '@/map/use-device-heading';
 
@@ -86,6 +87,7 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
   },
   ref,
 ) {
+  const theme = useTheme();
   const heading = useDeviceHeading(showCompass || headingUp);
   // MapLibre throws "padding is greater than map's height or width" if a bounds
   // fit runs before the map view has been measured (e.g. during a tab
@@ -172,34 +174,34 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
       <View style={[styles.topRightControls, { top: controlsTopInset + 12 }]}>
         {showCompass && heading != null ? <CompassBadge heading={heading} /> : null}
         {showRecenter && userCoordinate ? (
-          <View style={styles.controlButton}>
+          <View style={[styles.controlButton, { backgroundColor: theme.background }]}>
             <Pressable
               onPress={recenter}
               style={styles.zoomButton}
               hitSlop={6}
               accessibilityRole="button"
               accessibilityLabel="Recenter on my location">
-              <Ionicons name="locate" size={22} color="#1F2933" />
+              <Ionicons name="locate" size={22} color={theme.text} />
             </Pressable>
           </View>
         ) : null}
-        <View style={styles.zoomControls}>
+        <View style={[styles.zoomControls, { backgroundColor: theme.background }]}>
           <Pressable
             onPress={() => zoomBy(ZOOM_STEP)}
             style={styles.zoomButton}
             hitSlop={6}
             accessibilityRole="button"
             accessibilityLabel="Zoom in">
-            <Ionicons name="add" size={24} color="#1F2933" />
+            <Ionicons name="add" size={24} color={theme.text} />
           </Pressable>
-          <View style={styles.zoomDivider} />
+          <View style={[styles.zoomDivider, { backgroundColor: theme.backgroundSelected }]} />
           <Pressable
             onPress={() => zoomBy(-ZOOM_STEP)}
             style={styles.zoomButton}
             hitSlop={6}
             accessibilityRole="button"
             accessibilityLabel="Zoom out">
-            <Ionicons name="remove" size={24} color="#1F2933" />
+            <Ionicons name="remove" size={24} color={theme.text} />
           </Pressable>
         </View>
       </View>
@@ -221,7 +223,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   zoomControls: {
-    backgroundColor: '#ffffff',
     borderRadius: 10,
     overflow: 'hidden',
     shadowColor: '#000000',
@@ -231,7 +232,6 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   controlButton: {
-    backgroundColor: '#ffffff',
     borderRadius: 10,
     overflow: 'hidden',
     shadowColor: '#000000',
@@ -248,6 +248,5 @@ const styles = StyleSheet.create({
   },
   zoomDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: '#D2D6DC',
   },
 });

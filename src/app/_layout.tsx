@@ -1,10 +1,11 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { useEffect } from 'react';
-import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { getDatabase } from '@/db/client';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeStore } from '@/state/themeStore';
 // Importing the task module registers the background location task at startup.
 import '@/tracking/locationTask';
 import { restoreRecording } from '@/tracking/recorder';
@@ -16,6 +17,7 @@ export default function RootLayout() {
     (async () => {
       try {
         await getDatabase();
+        await useThemeStore.getState().hydrate();
         await restoreRecording();
       } catch (err) {
         console.warn('[startup] initialization failed', err);
