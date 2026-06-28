@@ -1,4 +1,5 @@
-import { Stack, router, useNavigation } from 'expo-router';
+import type { CameraRef, LngLatBounds } from '@maplibre/maplibre-react-native';
+import { Stack, router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CoordinateInput } from '@/components/coordinate-input';
 import { MapCanvas } from '@/components/map-canvas';
 import { PlanOverlays } from '@/components/plan-overlays';
 import { PlanStatsBar } from '@/components/plan-stats-bar';
@@ -23,12 +25,14 @@ import { ThemedView } from '@/components/themed-view';
 import { WaypointSheet } from '@/components/waypoint-sheet';
 import { Spacing } from '@/constants/theme';
 import { savePlannedRoute } from '@/data/planService';
+import { getRoute, getRouteWaypoints } from '@/db/routes';
 import type { Route, RouteDifficulty, WaypointType } from '@/db/types';
 import { fetchElevations } from '@/elevation/openMeteo';
 import { useTheme } from '@/hooks/use-theme';
-import { DEFAULT_ZOOM } from '@/map/mapStyle';
-import { getCurrentCoordinates } from '@/safety/sos';
+import { boundsOfCoords, DEFAULT_ZOOM } from '@/map/mapStyle';
+import { useCurrentLocation } from '@/map/use-current-location';
 import { usePlanStore, type LngLatTuple } from '@/state/planStore';
+import { getInitialCoordinate } from '@/tracking/recorder';
 import { ascentFromElevations, distanceOf, naismithSeconds } from '@/tracking/stats';
 
 const DIFFICULTIES: RouteDifficulty[] = ['easy', 'moderate', 'hard', 'expert'];
@@ -59,6 +63,16 @@ const CLOSED_WAYPOINT_SHEET: WaypointSheetState = {
   type: 'other',
 };
 
+interface CoordSheetState {
+  visible: boolean;
+  /** 'add' places a new vertex; 'edit' moves the selected vertex. */
+  mode: 'add' | 'edit';
+  lat?: number;
+  lng?: number;
+}
+
+const CLOSED_COORD_SHEET: CoordSheetState = { visible: false, mode: 'add' };
+
 export default function PlanScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -68,10 +82,15 @@ export default function PlanScreen() {
   const points = usePlanStore((s) => s.points);
   const waypoints = usePlanStore((s) => s.waypoints);
   const selectedVertex = usePlanStore((s) => s.selectedVertex);
+  const mode = usePlanStore((s) => s.mode);
+  const setMode = usePlanStore((s) => s.setMode);
+  const editingRouteId = usePlanStore((s) => s.editingRouteId);
   const elevations = usePlanStore((s) => s.elevations);
   const elevationStatus = usePlanStore((s) => s.elevationStatus);
   const appendPoint = usePlanStore((s) => s.appendPoint);
-  const undoLastPoint = usePlanStore((s) => s.undoLastPoint);
+  const moveVertex = usePlanStore((s) => s.moveVertex);
+  const undo = usePlanStore((s) => s.undo);
+  const canUndo = usePlanStore((s) => s.history.length > 0);
   const removeVertex = usePlanStore((s) => s.removeVertex);
   const selectVertex = usePlanStore((s) => s.selectVertex);
   const clearAll = usePlanStore((s) => s.clearAll);
@@ -81,18 +100,51 @@ export default function PlanScreen() {
   const setMeta = usePlanStore((s) => s.setMeta);
   const setElevations = usePlanStore((s) => s.setElevations);
 
-  const [userCoord, setUserCoord] = useState<LngLatTuple | null>(null);
+  const { routeId } = useLocalSearchParams<{ routeId?: string }>();
+  const cameraRef = useRef<CameraRef | null>(null);
+  const userCoord = useCurrentLocation();
+  const [initialCenter, setInitialCenter] = useState<LngLatTuple | null>(null);
+  const [editBounds, setEditBounds] = useState<LngLatBounds | undefined>(undefined);
+  const [statsBarHeight, setStatsBarHeight] = useState(0);
   const [wpSheet, setWpSheet] = useState<WaypointSheetState>(CLOSED_WAYPOINT_SHEET);
+  const [coordSheet, setCoordSheet] = useState<CoordSheetState>(CLOSED_COORD_SHEET);
   const [saveVisible, setSaveVisible] = useState(false);
   const [postSave, setPostSave] = useState<Route | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Acquire a single location fix to center the map and seed waypoint placement.
+  // When entered with a `routeId`, load that saved route into the draft for
+  // editing and frame the camera on its bounds (instead of the user location).
   useEffect(() => {
-    getCurrentCoordinates().then((c) => {
-      if (c) setUserCoord([c.lon, c.lat]);
+    if (!routeId) return;
+    if (usePlanStore.getState().points.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      const route = await getRoute(routeId);
+      if (!route || cancelled) return;
+      const wps = await getRouteWaypoints(routeId);
+      if (cancelled) return;
+      usePlanStore.getState().loadRoute(route, wps);
+      setEditBounds(boundsOfCoords(route.geometry.coordinates) ?? undefined);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [routeId]);
+
+  // Center the map on the user once, on entry. The live `userCoord` keeps
+  // updating to drive the recenter button and seed waypoint placement, but the
+  // camera center is captured from a single fix so it never undoes panning.
+  // Skipped when editing a saved route (the camera frames the route bounds).
+  useEffect(() => {
+    if (routeId) return;
+    let cancelled = false;
+    getInitialCoordinate().then((coord) => {
+      if (!cancelled && coord) setInitialCenter(coord);
     });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [routeId]);
 
   // Confirm before leaving with unsaved work; always clear the draft on exit.
   const savedRef = useRef(false);
@@ -149,22 +201,45 @@ export default function PlanScreen() {
   const ascentM = elevationStatus === 'ready' ? ascentFromElevations(elevations) : 0;
   const durationS = naismithSeconds(distanceM, ascentM);
 
+  // A map tap means exactly one thing per mode: draw → append a point, waypoint
+  // → drop a waypoint at the tap, edit → deselect (empty space).
   const onMapPress = useCallback(
     (lngLat: LngLatTuple) => {
-      selectVertex(null);
-      appendPoint(lngLat);
+      if (mode === 'draw') {
+        appendPoint(lngLat);
+      } else if (mode === 'waypoint') {
+        setWpSheet({ ...CLOSED_WAYPOINT_SHEET, visible: true, mode: 'add', lngLat });
+      } else {
+        selectVertex(null);
+      }
     },
-    [appendPoint, selectVertex],
+    [mode, appendPoint, selectVertex],
   );
 
-  const onAddWaypointButton = useCallback(() => {
-    const at = points.length > 0 ? points[points.length - 1] : userCoord;
-    if (!at) {
-      Alert.alert(t('plan.waypointNeedsPointTitle'), t('plan.waypointNeedsPointMessage'));
-      return;
-    }
-    setWpSheet({ ...CLOSED_WAYPOINT_SHEET, visible: true, mode: 'add', lngLat: at });
-  }, [points, userCoord, t]);
+  const onAddByCoordinate = useCallback(() => {
+    const seed = points.length > 0 ? points[points.length - 1] : userCoord;
+    setCoordSheet({ visible: true, mode: 'add', lat: seed?.[1], lng: seed?.[0] });
+  }, [points, userCoord]);
+
+  const onEditCoordinate = useCallback(() => {
+    if (selectedVertex === null) return;
+    const p = points[selectedVertex];
+    setCoordSheet({ visible: true, mode: 'edit', lat: p[1], lng: p[0] });
+  }, [selectedVertex, points]);
+
+  const onSubmitCoordinate = useCallback(
+    (lat: number, lng: number) => {
+      const lngLat: LngLatTuple = [lng, lat];
+      if (coordSheet.mode === 'edit' && selectedVertex !== null) {
+        moveVertex(selectedVertex, lngLat);
+      } else {
+        appendPoint(lngLat);
+      }
+      cameraRef.current?.easeTo({ center: lngLat, duration: 500 });
+      setCoordSheet(CLOSED_COORD_SHEET);
+    },
+    [coordSheet.mode, selectedVertex, moveVertex, appendPoint],
+  );
 
   const onEditWaypoint = useCallback(
     (id: string) => {
@@ -182,12 +257,19 @@ export default function PlanScreen() {
     [waypoints],
   );
 
+  const onClear = useCallback(() => {
+    Alert.alert(t('plan.clearTitle'), t('plan.clearMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('plan.clear'), style: 'destructive', onPress: clearAll },
+    ]);
+  }, [clearAll, t]);
+
   const onSubmitWaypoint = useCallback(
-    (name: string, type: WaypointType) => {
+    (name: string, type: WaypointType, lngLat: LngLatTuple) => {
       if (wpSheet.mode === 'edit' && wpSheet.id) {
-        updateWaypoint(wpSheet.id, { name, type });
-      } else if (wpSheet.lngLat) {
-        addWaypoint({ lngLat: wpSheet.lngLat, name, type });
+        updateWaypoint(wpSheet.id, { name, type, lngLat });
+      } else {
+        addWaypoint({ lngLat, name, type });
       }
       setWpSheet(CLOSED_WAYPOINT_SHEET);
     },
@@ -208,6 +290,7 @@ export default function PlanScreen() {
     setSaving(true);
     try {
       const route = await savePlannedRoute({
+        id: editingRouteId ?? undefined,
         name,
         region,
         difficulty,
@@ -227,7 +310,7 @@ export default function PlanScreen() {
     } finally {
       setSaving(false);
     }
-  }, [points, waypoints, elevations, elevationStatus, t]);
+  }, [editingRouteId, points, waypoints, elevations, elevationStatus, t]);
 
   const openSavedRoute = useCallback(() => {
     const route = postSave;
@@ -242,17 +325,18 @@ export default function PlanScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <Stack.Screen options={{ title: t('plan.title') }} />
+      <Stack.Screen options={{ title: editingRouteId ? t('plan.editTitle') : t('plan.title') }} />
 
       <MapCanvas
-        centerCoordinate={userCoord ?? undefined}
-        zoomLevel={userCoord ? 14 : DEFAULT_ZOOM}
+        ref={cameraRef}
+        centerCoordinate={initialCenter ?? undefined}
+        zoomLevel={initialCenter ? 14 : DEFAULT_ZOOM}
+        bounds={editBounds}
         showUser
         showRecenter
         userCoordinate={userCoord ?? undefined}
-        controlsTopInset={64}
-        onPress={onMapPress}
-        onLongPress={(p) => setWpSheet({ ...CLOSED_WAYPOINT_SHEET, visible: true, lngLat: p })}>
+        controlsTopInset={statsBarHeight + Spacing.two}
+        onPress={onMapPress}>
         <PlanOverlays onEditWaypoint={onEditWaypoint} />
       </MapCanvas>
 
@@ -263,6 +347,7 @@ export default function PlanScreen() {
         ascentM={ascentM}
         durationS={durationS}
         elevationStatus={elevationStatus}
+        onHeightChange={setStatsBarHeight}
       />
 
       {showRecompute ? (
@@ -276,21 +361,31 @@ export default function PlanScreen() {
         </Pressable>
       ) : null}
 
-      {points.length === 0 ? (
-        <ThemedView type="backgroundElement" style={styles.hint}>
-          <ThemedText type="small" themeColor="textSecondary" style={styles.hintText}>
-            {t('plan.emptyHint')}
-          </ThemedText>
-        </ThemedView>
-      ) : null}
+      <ThemedView
+        type="backgroundElement"
+        style={[styles.hint, { top: statsBarHeight + Spacing.two + 12 }]}>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.hintText}>
+          {t(
+            mode === 'draw'
+              ? 'plan.drawHint'
+              : mode === 'waypoint'
+                ? 'plan.waypointHint'
+                : 'plan.editHint',
+          )}
+        </ThemedText>
+      </ThemedView>
 
       <PlanToolbar
         bottomInset={insets.bottom + 96}
-        canUndo={points.length > 0}
+        mode={mode}
+        onModeChange={setMode}
+        canUndo={canUndo}
+        canClear={points.length > 0 || waypoints.length > 0}
         hasSelection={selectedVertex !== null}
-        onUndo={undoLastPoint}
-        onClear={clearAll}
-        onAddWaypoint={onAddWaypointButton}
+        onUndo={undo}
+        onClear={onClear}
+        onAddByCoordinate={onAddByCoordinate}
+        onEditCoordinate={onEditCoordinate}
         onDeletePoint={() => selectedVertex !== null && removeVertex(selectedVertex)}
       />
 
@@ -302,14 +397,25 @@ export default function PlanScreen() {
         />
       </View>
 
-      {wpSheet.visible ? (
+      {wpSheet.visible && wpSheet.lngLat ? (
         <WaypointSheet
           initialName={wpSheet.name}
           initialType={wpSheet.type}
+          initialLngLat={wpSheet.lngLat}
           editing={wpSheet.mode === 'edit'}
           onSubmit={onSubmitWaypoint}
           onDelete={onDeleteWaypoint}
           onClose={() => setWpSheet(CLOSED_WAYPOINT_SHEET)}
+        />
+      ) : null}
+
+      {coordSheet.visible ? (
+        <CoordinateInput
+          title={coordSheet.mode === 'edit' ? t('plan.editCoordinate') : t('plan.addByCoordinate')}
+          initialLat={coordSheet.lat}
+          initialLng={coordSheet.lng}
+          onSubmit={onSubmitCoordinate}
+          onClose={() => setCoordSheet(CLOSED_COORD_SHEET)}
         />
       ) : null}
 
@@ -444,9 +550,10 @@ const styles = StyleSheet.create({
   },
   hint: {
     position: 'absolute',
-    top: 60,
     left: Spacing.three,
-    right: Spacing.three,
+    // Clear the top-right control column (locate + zoom buttons) so the hint
+    // never covers the recenter button.
+    right: 64,
     padding: Spacing.three,
     borderRadius: Spacing.three,
   },

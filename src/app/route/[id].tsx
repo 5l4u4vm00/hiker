@@ -232,6 +232,14 @@ export default function RouteDetailScreen() {
 
           <PrimaryButton title={t('routeDetail.followOnMap')} onPress={onFollow} />
 
+          {saved && route.source === 'manual' ? (
+            <PrimaryButton
+              title={t('routeDetail.editRoute')}
+              variant="neutral"
+              onPress={() => router.push({ pathname: '/plan', params: { routeId: route.id } })}
+            />
+          ) : null}
+
           <ThemedText type="small" themeColor="textSecondary">
             {t('routeDetail.hint')}
           </ThemedText>

@@ -159,6 +159,11 @@ export async function addWaypoint(
   return { ...waypoint, id };
 }
 
+export async function deleteRouteWaypoints(routeId: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM waypoints WHERE route_id = ?', routeId);
+}
+
 export async function getRouteWaypoints(routeId: string): Promise<Waypoint[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<WaypointRow>(

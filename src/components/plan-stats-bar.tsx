@@ -16,6 +16,8 @@ export interface PlanStatsBarProps {
   /** Naismith estimate (s); flat-only when ascent is unknown. */
   durationS: number;
   elevationStatus: ElevationStatus;
+  /** Reports the bar's measured height so callers can offset overlapping controls below it. */
+  onHeightChange?: (height: number) => void;
 }
 
 /** Live stats while drawing: distance, ascent, estimated time, and point count. */
@@ -26,6 +28,7 @@ export function PlanStatsBar({
   ascentM,
   durationS,
   elevationStatus,
+  onHeightChange,
 }: PlanStatsBarProps) {
   const { t } = useTranslation();
 
@@ -41,7 +44,10 @@ export function PlanStatsBar({
   const timeCaption = elevationStatus === 'ready' ? undefined : t('plan.flatEstimate');
 
   return (
-    <ThemedView type="backgroundElement" style={[styles.bar, { top: topInset + Spacing.two }]}>
+    <ThemedView
+      type="backgroundElement"
+      style={[styles.bar, { top: topInset + Spacing.two }]}
+      onLayout={(e) => onHeightChange?.(e.nativeEvent.layout.height)}>
       <Stat label={t('plan.distance')} value={pointCount >= 2 ? formatDistance(distanceM) : '--'} />
       <Stat label={t('plan.ascent')} value={ascentValue} />
       <Stat

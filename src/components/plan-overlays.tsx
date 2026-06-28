@@ -7,27 +7,29 @@ import { midpoint } from '@/map/mapStyle';
 import { usePlanStore } from '@/state/planStore';
 
 const ROUTE_COLOR = '#E5484D';
+const SELECT_COLOR = '#208AEF';
 
 /**
- * Past this many vertices the draggable ghost insert-handles are dropped to keep
- * the count of native annotation views bounded. The line and vertices still
- * render; the user can still append and drag existing vertices.
+ * Past this many segments the midpoint insert handles are dropped to keep the
+ * count of native annotation views bounded; vertices still select and drag.
  */
-const GHOST_LIMIT = 60;
+const INSERT_HANDLE_LIMIT = 60;
 
 /**
- * Editing overlays for the Plan screen, rendered as MapCanvas children: the live
- * polyline (a cheap GeoJSON layer), a draggable handle per vertex, draggable
- * "ghost" handles at segment midpoints that insert a vertex when dragged, and a
- * draggable marker per waypoint. Reads the draft straight from the plan store.
+ * Editing overlays for the Plan screen, rendered as MapCanvas children. Each
+ * marker is interactive only in its own mode (see PlanMode): vertices select in
+ * `edit`, midpoint "+" handles insert in `edit`, and waypoints edit in
+ * `waypoint`. The selected vertex is dragged via the `VertexDragHandle` layered
+ * above the map. Reads the draft straight from the plan store.
  */
 export function PlanOverlays({ onEditWaypoint }: { onEditWaypoint: (id: string) => void }) {
   const points = usePlanStore((s) => s.points);
   const waypoints = usePlanStore((s) => s.waypoints);
   const selectedVertex = usePlanStore((s) => s.selectedVertex);
-  const moveVertex = usePlanStore((s) => s.moveVertex);
-  const insertPoint = usePlanStore((s) => s.insertPoint);
+  const mode = usePlanStore((s) => s.mode);
   const selectVertex = usePlanStore((s) => s.selectVertex);
+  const insertPoint = usePlanStore((s) => s.insertPoint);
+  const moveVertex = usePlanStore((s) => s.moveVertex);
   const updateWaypoint = usePlanStore((s) => s.updateWaypoint);
 
   const lineFeature: GeoJSON.Feature<GeoJSON.LineString> = {
@@ -36,7 +38,7 @@ export function PlanOverlays({ onEditWaypoint }: { onEditWaypoint: (id: string) 
     geometry: { type: 'LineString', coordinates: points },
   };
 
-  const showGhosts = points.length >= 2 && points.length <= GHOST_LIMIT;
+  const showInsertHandles = mode === 'edit' && points.length >= 2 && points.length <= INSERT_HANDLE_LIMIT;
 
   return (
     <>
@@ -51,17 +53,23 @@ export function PlanOverlays({ onEditWaypoint }: { onEditWaypoint: (id: string) 
         </GeoJSONSource>
       ) : null}
 
-      {showGhosts
+      {showInsertHandles
         ? points.slice(0, -1).map((p, i) => {
             const mid = midpoint(p, points[i + 1]);
             return (
               <ViewAnnotation
-                key={`ghost-${i}`}
-                id={`ghost-${i}`}
+                key={`insert-${i}`}
+                id={`insert-${i}`}
                 lngLat={mid}
-                draggable
-                onDragEnd={(e) => insertPoint(i, e.nativeEvent.lngLat)}>
-                <View style={styles.ghost} />
+                onPress={() => {
+                  insertPoint(i, mid);
+                  selectVertex(i + 1);
+                }}>
+                <View style={styles.hitArea}>
+                  <View style={styles.insert}>
+                    <Ionicons name="add" size={12} color="#ffffff" />
+                  </View>
+                </View>
               </ViewAnnotation>
             );
           })
@@ -72,10 +80,15 @@ export function PlanOverlays({ onEditWaypoint }: { onEditWaypoint: (id: string) 
           key={`vertex-${i}`}
           id={`vertex-${i}`}
           lngLat={p}
-          draggable
-          onPress={() => selectVertex(selectedVertex === i ? null : i)}
-          onDragEnd={(e) => moveVertex(i, e.nativeEvent.lngLat)}>
-          <View style={[styles.vertex, selectedVertex === i && styles.vertexSelected]} />
+          draggable={mode === 'edit'}
+          onPress={
+            mode === 'edit' ? () => selectVertex(selectedVertex === i ? null : i) : undefined
+          }
+          onDragStart={mode === 'edit' ? () => selectVertex(i) : undefined}
+          onDragEnd={mode === 'edit' ? (e) => moveVertex(i, e.nativeEvent.lngLat) : undefined}>
+          <View style={styles.hitArea}>
+            <View style={[styles.vertex, selectedVertex === i && styles.vertexSelected]} />
+          </View>
         </ViewAnnotation>
       ))}
 
@@ -86,11 +99,17 @@ export function PlanOverlays({ onEditWaypoint }: { onEditWaypoint: (id: string) 
             key={w.id}
             id={`wp-${w.id}`}
             lngLat={w.lngLat}
-            draggable
-            onPress={() => onEditWaypoint(w.id)}
-            onDragEnd={(e) => updateWaypoint(w.id, { lngLat: e.nativeEvent.lngLat })}>
-            <View style={[styles.waypoint, { backgroundColor: meta.color }]}>
-              <Ionicons name={meta.icon} size={14} color="#ffffff" />
+            draggable={mode === 'edit'}
+            onPress={mode === 'waypoint' ? () => onEditWaypoint(w.id) : undefined}
+            onDragEnd={
+              mode === 'edit'
+                ? (e) => updateWaypoint(w.id, { lngLat: e.nativeEvent.lngLat })
+                : undefined
+            }>
+            <View style={styles.hitArea}>
+              <View style={[styles.waypoint, { backgroundColor: meta.color }]}>
+                <Ionicons name={meta.icon} size={14} color="#ffffff" />
+              </View>
             </View>
           </ViewAnnotation>
         );
@@ -100,6 +119,12 @@ export function PlanOverlays({ onEditWaypoint }: { onEditWaypoint: (id: string) 
 }
 
 const styles = StyleSheet.create({
+  // Transparent padding that enlarges the tap target around each small marker.
+  hitArea: {
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   vertex: {
     width: 16,
     height: 16,
@@ -112,15 +137,17 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    borderColor: '#208AEF',
+    borderColor: SELECT_COLOR,
   },
-  ghost: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'rgba(229,72,77,0.45)',
+  insert: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(32,138,239,0.85)',
     borderWidth: 1,
     borderColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   waypoint: {
     width: 26,

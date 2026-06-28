@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/primary-button';
 import { ThemedText } from '@/components/themed-text';
@@ -9,6 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import type { WaypointType } from '@/db/types';
 import { useTheme } from '@/hooks/use-theme';
+import type { LngLatTuple } from '@/state/planStore';
 
 /** Icon and color used to render each waypoint type on the map and in the picker. */
 export const WAYPOINT_META: Record<
@@ -29,9 +30,11 @@ const TYPES = Object.keys(WAYPOINT_META) as WaypointType[];
 export interface WaypointSheetProps {
   initialName?: string;
   initialType?: WaypointType;
+  /** Current location of the waypoint, editable as decimal-degree coordinates. */
+  initialLngLat: LngLatTuple;
   /** Whether this is editing an existing waypoint (shows a delete action). */
   editing?: boolean;
-  onSubmit: (name: string, type: WaypointType) => void;
+  onSubmit: (name: string, type: WaypointType, lngLat: LngLatTuple) => void;
   onDelete?: () => void;
   onClose: () => void;
 }
@@ -44,6 +47,7 @@ export interface WaypointSheetProps {
 export function WaypointSheet({
   initialName = '',
   initialType = 'other',
+  initialLngLat,
   editing = false,
   onSubmit,
   onDelete,
@@ -53,16 +57,37 @@ export function WaypointSheet({
   const { t } = useTranslation();
   const [name, setName] = useState(initialName);
   const [type, setType] = useState<WaypointType>(initialType);
+  const [lat, setLat] = useState(String(initialLngLat[1]));
+  const [lng, setLng] = useState(String(initialLngLat[0]));
+  const [coordError, setCoordError] = useState(false);
 
   const submit = () => {
+    const latN = Number(lat.trim());
+    const lngN = Number(lng.trim());
+    const coordValid =
+      lat.trim() !== '' &&
+      lng.trim() !== '' &&
+      Number.isFinite(latN) &&
+      Number.isFinite(lngN) &&
+      latN >= -90 &&
+      latN <= 90 &&
+      lngN >= -180 &&
+      lngN <= 180;
+    if (!coordValid) {
+      setCoordError(true);
+      return;
+    }
     const trimmed = name.trim() || t(`waypointTypes.${type}`);
-    onSubmit(trimmed, type);
+    onSubmit(trimmed, type, [lngN, latN]);
   };
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <ThemedView style={styles.sheet}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Pressable style={styles.backdrop} onPress={onClose} />
+        <ThemedView style={styles.sheet}>
         <ThemedText type="subtitle" style={styles.heading}>
           {t(editing ? 'plan.editWaypoint' : 'plan.addWaypoint')}
         </ThemedText>
@@ -109,6 +134,43 @@ export function WaypointSheet({
           })}
         </View>
 
+        <View style={styles.coordRow}>
+          <View style={[styles.inputBox, styles.coordBox, { backgroundColor: theme.backgroundElement }]}>
+            <ThemedText type="small" themeColor="textSecondary">
+              {t('plan.latitude')}
+            </ThemedText>
+            <TextInput
+              value={lat}
+              onChangeText={(text) => {
+                setLat(text);
+                setCoordError(false);
+              }}
+              keyboardType="numbers-and-punctuation"
+              style={[styles.input, { color: theme.text }]}
+            />
+          </View>
+          <View style={[styles.inputBox, styles.coordBox, { backgroundColor: theme.backgroundElement }]}>
+            <ThemedText type="small" themeColor="textSecondary">
+              {t('plan.longitude')}
+            </ThemedText>
+            <TextInput
+              value={lng}
+              onChangeText={(text) => {
+                setLng(text);
+                setCoordError(false);
+              }}
+              keyboardType="numbers-and-punctuation"
+              style={[styles.input, { color: theme.text }]}
+            />
+          </View>
+        </View>
+
+        {coordError ? (
+          <ThemedText type="small" style={{ color: '#E5484D' }}>
+            {t('plan.coordinateInvalid')}
+          </ThemedText>
+        ) : null}
+
         <PrimaryButton title={t('common.save')} onPress={submit} />
         {editing && onDelete ? (
           <PrimaryButton title={t('plan.deleteWaypoint')} variant="danger" onPress={onDelete} />
@@ -116,12 +178,14 @@ export function WaypointSheet({
         <Pressable onPress={onClose} accessibilityRole="button" style={styles.cancel}>
           <ThemedText themeColor="textSecondary">{t('common.cancel')}</ThemedText>
         </Pressable>
-      </ThemedView>
+        </ThemedView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  container: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)' },
   sheet: {
     paddingHorizontal: Spacing.four,
@@ -139,6 +203,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   input: { fontSize: 16 },
+  coordRow: { flexDirection: 'row', gap: Spacing.two },
+  coordBox: {
+    flex: 1,
+    height: undefined,
+    paddingVertical: Spacing.two,
+    gap: 2,
+    justifyContent: 'flex-start',
+  },
   typeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   typeChip: {
     flexDirection: 'row',
