@@ -171,6 +171,50 @@ export function distanceOf(points: [number, number][]): number {
 }
 
 /**
+ * Points spaced every `intervalKm` along a `[lon, lat]` polyline, as a GeoJSON
+ * FeatureCollection whose features carry a `km` label property. Walks the line
+ * summing great-circle distance and interpolates each marker between the two
+ * vertices it falls on. Used to render distance ticks on the planning map.
+ */
+export function kmMarkers(
+  points: [number, number][],
+  intervalKm = 1,
+): GeoJSON.FeatureCollection<GeoJSON.Point, { km: number }> {
+  const features: GeoJSON.Feature<GeoJSON.Point, { km: number }>[] = [];
+  if (points.length < 2 || intervalKm <= 0) {
+    return { type: 'FeatureCollection', features };
+  }
+
+  const intervalM = intervalKm * 1000;
+  let accumulated = 0;
+  let nextMark = intervalM;
+
+  for (let i = 1; i < points.length; i++) {
+    const [aLon, aLat] = points[i - 1];
+    const [bLon, bLat] = points[i];
+    const segLen = haversine({ lat: aLat, lon: aLon }, { lat: bLat, lon: bLon });
+    if (segLen === 0) continue;
+
+    // Drop every marker boundary that lands inside this segment.
+    while (nextMark <= accumulated + segLen) {
+      const frac = (nextMark - accumulated) / segLen;
+      features.push({
+        type: 'Feature',
+        properties: { km: Math.round(nextMark / 1000) },
+        geometry: {
+          type: 'Point',
+          coordinates: [aLon + (bLon - aLon) * frac, aLat + (bLat - aLat) * frac],
+        },
+      });
+      nextMark += intervalM;
+    }
+    accumulated += segLen;
+  }
+
+  return { type: 'FeatureCollection', features };
+}
+
+/**
  * Estimated walking time (s) by Naismith's rule: ~12 min per km of distance plus
  * 1 hour per 600 m of ascent. A planning estimate, not a guarantee.
  */

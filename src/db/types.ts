@@ -58,7 +58,15 @@ export interface Route {
   geometry: GeoJSON.LineString;
 }
 
-export type WaypointType = 'water' | 'campsite' | 'peak' | 'junction' | 'hut' | 'view' | 'other';
+export type WaypointType =
+  | 'water'
+  | 'campsite'
+  | 'peak'
+  | 'junction'
+  | 'hut'
+  | 'shelter'
+  | 'view'
+  | 'other';
 
 export interface Waypoint {
   id: string;
@@ -68,6 +76,22 @@ export interface Waypoint {
   lon: number;
   name: string;
   type: WaypointType;
+}
+
+/**
+ * A curated point of interest (mountain hut, water source, shelter, …) shown as
+ * a toggleable map layer. Bundled POIs are seeded from `src/data/pois.json`;
+ * `category` reuses {@link WaypointType} so POIs and user waypoints share the
+ * same icon/color metadata. Coordinates are WGS84 degrees.
+ */
+export interface Poi {
+  id: string;
+  name: string;
+  category: WaypointType;
+  lat: number;
+  lon: number;
+  elevation: number | null;
+  note: string | null;
 }
 
 export interface JournalEntry {

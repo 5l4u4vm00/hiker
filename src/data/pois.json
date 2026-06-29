@@ -1,0 +1,22 @@
+[
+  { "name": "Paiyun Lodge", "category": "hut", "lat": 23.47163, "lon": 120.94252, "elevation": 3402, "note": "Yushan main trail base camp" },
+  { "name": "Yuanfeng Cabin", "category": "hut", "lat": 23.45331, "lon": 120.93899, "elevation": 3500, "note": "Yushan south branch" },
+  { "name": "Yushan Main Peak", "category": "peak", "lat": 23.47000, "lon": 120.95727, "elevation": 3952, "note": "Highest summit in Taiwan" },
+  { "name": "Paiyun Water Source", "category": "water", "lat": 23.47010, "lon": 120.94470, "elevation": 3390, "note": "Seasonal; confirm before relying on it" },
+  { "name": "Qika Cabin", "category": "hut", "lat": 24.39900, "lon": 121.26400, "elevation": 2463, "note": "Xueshan trail first hut" },
+  { "name": "369 Cabin", "category": "hut", "lat": 24.38970, "lon": 121.24350, "elevation": 3100, "note": "Xueshan trail" },
+  { "name": "Xueshan Main Peak", "category": "peak", "lat": 24.38390, "lon": 121.23060, "elevation": 3886, "note": "Second highest in Taiwan" },
+  { "name": "Black Forest Water Source", "category": "water", "lat": 24.38560, "lon": 121.23700, "elevation": 3500, "note": "Below Xueshan black forest" },
+  { "name": "Tianchi Lodge", "category": "hut", "lat": 24.02200, "lon": 121.20500, "elevation": 2860, "note": "Nengao cross-ridge trail" },
+  { "name": "Xiangyang Cabin", "category": "hut", "lat": 23.30100, "lon": 121.06000, "elevation": 2850, "note": "Jiaming Lake trail" },
+  { "name": "Jiaming Lake Emergency Shelter", "category": "shelter", "lat": 23.29800, "lon": 121.03300, "elevation": 3350, "note": "Emergency use" },
+  { "name": "Jiaming Lake", "category": "view", "lat": 23.28800, "lon": 121.03800, "elevation": 3310, "note": "Alpine lake viewpoint" },
+  { "name": "Songxue Lodge", "category": "hut", "lat": 24.14200, "lon": 121.28200, "elevation": 3150, "note": "Hehuanshan area" },
+  { "name": "Hehuan East Peak", "category": "peak", "lat": 24.13560, "lon": 121.28930, "elevation": 3421, "note": "Accessible high peak" },
+  { "name": "Nanhu Cabin", "category": "hut", "lat": 24.36100, "lon": 121.43000, "elevation": 3380, "note": "Nanhushan high camp" },
+  { "name": "Shenmazhen Cabin", "category": "hut", "lat": 24.38900, "lon": 121.41200, "elevation": 3270, "note": "Nanhu approach" },
+  { "name": "Yunleng Cabin", "category": "hut", "lat": 24.36900, "lon": 121.39200, "elevation": 2360, "note": "Shengling traverse" },
+  { "name": "Chenggong Fort No.1", "category": "shelter", "lat": 24.09900, "lon": 121.27000, "elevation": 3050, "note": "Qilai ridge emergency shelter" },
+  { "name": "Qilai North Peak", "category": "peak", "lat": 24.10870, "lon": 121.27160, "elevation": 3607, "note": "Qilai ridge" },
+  { "name": "Wuling Saddle Rest Point", "category": "shelter", "lat": 24.41100, "lon": 121.30800, "elevation": 2300, "note": "Trailhead rest area" }
+]

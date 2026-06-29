@@ -5,10 +5,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { getDatabase } from '@/db/client';
+import { seedPoisIfEmpty } from '@/db/pois';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 // Importing the i18n module initializes i18next before the first render.
 import '@/i18n';
 import { useLanguageStore } from '@/state/languageStore';
+import { useMapLayerStore } from '@/state/mapLayerStore';
 import { useThemeStore } from '@/state/themeStore';
 // Importing the task module registers the background location task at startup.
 import '@/tracking/locationTask';
@@ -24,6 +26,8 @@ export default function RootLayout() {
         await getDatabase();
         await useThemeStore.getState().hydrate();
         await useLanguageStore.getState().hydrate();
+        await useMapLayerStore.getState().hydrate();
+        await seedPoisIfEmpty();
         await restoreRecording();
       } catch (err) {
         console.warn('[startup] initialization failed', err);

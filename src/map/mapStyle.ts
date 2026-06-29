@@ -38,6 +38,19 @@ export function buildStyleJson(token: string): string {
   return JSON.stringify(buildRasterStyle(token));
 }
 
+/**
+ * Tile URL template for MapTiler's Terrain-RGB DEM (Mapbox encoding), fed to a
+ * `RasterDEMSource` so MapLibre can render a client-side `hillshade` layer. This
+ * is more portable than guessing a pre-rendered hillshade raster tileset; if the
+ * MapTiler account exposes the DEM under a different id, change it here only.
+ */
+export function buildTerrainDemUrl(token: string): string {
+  return `https://api.maptiler.com/tiles/terrain-rgb-v2/{z}/{x}/{y}.webp?key=${token}`;
+}
+
+/** MapTiler Terrain-RGB v2 tops out at zoom 12; the DEM source must cap there. */
+export const TERRAIN_DEM_MAXZOOM = 12;
+
 /** Default camera position: centered on Taiwan. */
 export const TAIWAN_CENTER: LngLat = [120.96, 23.7];
 export const DEFAULT_ZOOM = 7;
