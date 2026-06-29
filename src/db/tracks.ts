@@ -110,6 +110,49 @@ export async function listCompletedTracks(): Promise<Track[]> {
   return rows.map(mapTrack);
 }
 
+/** A completed track enriched with its journal note metadata, for the Journal list. */
+export interface JournalTrack {
+  track: Track;
+  noteCount: number;
+  latestNote: string | null;
+}
+
+interface JournalTrackRow extends TrackRow {
+  note_count: number;
+  latest_note: string | null;
+}
+
+/**
+ * Lists completed tracks with their note count and latest note. When `keyword`
+ * is provided, matches the track name or the text of any attached journal note.
+ */
+export async function queryJournalTracks(keyword?: string): Promise<JournalTrack[]> {
+  const db = await getDatabase();
+  const trimmed = keyword?.trim() ?? '';
+  let sql =
+    `SELECT t.*,
+       (SELECT COUNT(*) FROM journal_entries je WHERE je.track_id = t.id) AS note_count,
+       (SELECT je.note FROM journal_entries je WHERE je.track_id = t.id
+          ORDER BY je.created_at DESC LIMIT 1) AS latest_note
+     FROM tracks t
+     WHERE t.status = 'completed'`;
+  const params: string[] = [];
+  if (trimmed) {
+    const like = `%${trimmed}%`;
+    sql +=
+      ` AND (t.name LIKE ? OR EXISTS (
+           SELECT 1 FROM journal_entries je WHERE je.track_id = t.id AND je.note LIKE ?))`;
+    params.push(like, like);
+  }
+  sql += ' ORDER BY t.started_at DESC';
+  const rows = await db.getAllAsync<JournalTrackRow>(sql, ...params);
+  return rows.map((row) => ({
+    track: mapTrack(row),
+    noteCount: row.note_count,
+    latestNote: row.latest_note,
+  }));
+}
+
 export type TrackStats = Pick<
   Track,
   'distanceM' | 'ascentM' | 'descentM' | 'durationS' | 'maxAlt'

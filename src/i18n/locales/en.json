@@ -80,7 +80,10 @@
     "totalDistance": "Total distance",
     "totalAscent": "Total ascent",
     "empty": "No hikes yet. Record one from the Map tab to see it here.",
-    "trackStats": "{{distance}} · {{duration}} · {{ascent}} ascent"
+    "searchPlaceholder": "Search hikes and notes",
+    "clearSearch": "Clear search",
+    "noResults": "No hikes match your search.",
+    "notesCount": "{{count}} notes"
   },
   "settings": {
     "title": "Settings",

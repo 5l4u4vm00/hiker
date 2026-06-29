@@ -80,7 +80,10 @@
     "totalDistance": "總距離",
     "totalAscent": "總爬升",
     "empty": "尚無健行記錄。從地圖分頁記錄一次健行後即會顯示於此。",
-    "trackStats": "{{distance}} · {{duration}} · 爬升 {{ascent}}"
+    "searchPlaceholder": "搜尋健行與筆記",
+    "clearSearch": "清除搜尋",
+    "noResults": "沒有符合搜尋的健行記錄。",
+    "notesCount": "{{count}} 則筆記"
   },
   "settings": {
     "title": "設定",
