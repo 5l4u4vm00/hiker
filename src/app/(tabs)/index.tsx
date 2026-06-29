@@ -353,7 +353,9 @@ export default function MapScreen() {
             />
           </GeoJSONSource>
         ) : null}
-        {snappedFeature ? (
+        {snappedFeature && nav?.offRoute ? (
+          // Only while off-route: mark the nearest point on the route. On-route
+          // the snapped point sits on the user puck, so it's redundant there.
           <GeoJSONSource id="follow-snapped" data={snappedFeature}>
             <Layer
               id="follow-snapped-layer"
@@ -362,7 +364,7 @@ export default function MapScreen() {
                 'circle-radius': 5,
                 'circle-color': '#ffffff',
                 'circle-stroke-width': 3,
-                'circle-stroke-color': nav?.offRoute ? '#FF9500' : '#208AEF',
+                'circle-stroke-color': '#FF9500',
               }}
             />
           </GeoJSONSource>
