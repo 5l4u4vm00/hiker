@@ -53,6 +53,11 @@ export async function getJournalEntries(trackId: string): Promise<JournalEntry[]
   return rows.map(mapEntry);
 }
 
+export async function updateJournalEntry(id: string, note: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE journal_entries SET note = ? WHERE id = ?', note, id);
+}
+
 export async function deleteJournalEntry(id: string): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM journal_entries WHERE id = ?', id);

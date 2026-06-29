@@ -174,10 +174,21 @@
     "notes": "Notes",
     "notePlaceholder": "Add a note about this hike",
     "addNote": "Add note",
+    "edit": "Edit",
+    "noNotes": "No notes yet — tap Edit to add one.",
     "followOnMap": "Follow on map",
     "exportGpx": "Export GPX",
     "deleteTitle": "Delete hike?",
     "deleteMessage": "This cannot be undone."
+  },
+  "hikeEdit": {
+    "title": "Edit hike",
+    "name": "Name",
+    "namePlaceholder": "Hike name",
+    "notesLabel": "Notes",
+    "addNotePlaceholder": "Add a note",
+    "saveChanges": "Save changes",
+    "deleteNote": "Delete note"
   },
   "followHud": {
     "following": "Following",

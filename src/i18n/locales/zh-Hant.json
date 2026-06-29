@@ -174,10 +174,21 @@
     "notes": "筆記",
     "notePlaceholder": "為這次健行新增筆記",
     "addNote": "新增筆記",
+    "edit": "編輯",
+    "noNotes": "尚無筆記 — 點擊「編輯」新增。",
     "followOnMap": "在地圖上跟隨",
     "exportGpx": "匯出 GPX",
     "deleteTitle": "刪除健行？",
     "deleteMessage": "此動作無法復原。"
+  },
+  "hikeEdit": {
+    "title": "編輯健行",
+    "name": "名稱",
+    "namePlaceholder": "健行名稱",
+    "notesLabel": "筆記",
+    "addNotePlaceholder": "新增筆記",
+    "saveChanges": "儲存變更",
+    "deleteNote": "刪除筆記"
   },
   "followHud": {
     "following": "跟隨中",

@@ -44,8 +44,12 @@ export default function RootLayout() {
             options={{ headerShown: true, title: t('nav.route'), headerBackTitle: t('common.back') }}
           />
           <Stack.Screen
-            name="hike/[id]"
+            name="hike/[id]/index"
             options={{ headerShown: true, title: t('nav.hike'), headerBackTitle: t('common.back') }}
+          />
+          <Stack.Screen
+            name="hike/[id]/edit"
+            options={{ headerShown: true, title: t('hikeEdit.title'), headerBackTitle: t('common.cancel') }}
           />
           <Stack.Screen
             name="plan"
