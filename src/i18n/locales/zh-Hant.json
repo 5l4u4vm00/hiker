@@ -204,6 +204,7 @@
   },
   "mapCanvas": {
     "recenter": "回到我的位置",
+    "resetNorth": "地圖回正北",
     "zoomIn": "放大",
     "zoomOut": "縮小"
   },

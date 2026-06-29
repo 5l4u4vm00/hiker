@@ -204,6 +204,7 @@
   },
   "mapCanvas": {
     "recenter": "Recenter on my location",
+    "resetNorth": "Reset map to north",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out"
   },

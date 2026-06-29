@@ -141,6 +141,12 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
     cameraRef.current?.easeTo({ center: userCoordinate, zoom: RECENTER_ZOOM, duration: 500 });
   };
 
+  // Snap the map back to north-up after a manual rotation gesture. `setStop`
+  // with neither `center` nor `bounds` rotates in place without moving.
+  const resetNorth = () => {
+    cameraRef.current?.setStop({ bearing: 0, duration: 300 });
+  };
+
   // In heading-up (recording) mode the camera follows the user via declarative
   // `center`/`bearing` with no `zoom` prop, so manual zoom persists across the
   // frequent position/heading updates. On entry, zoom in *to the current
@@ -196,7 +202,12 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
       </MapLibreMap>
 
       <View style={[styles.topRightControls, { top: controlsTopInset + 12 }]}>
-        {showCompass && heading != null ? <CompassBadge heading={heading} /> : null}
+        {showCompass && heading != null ? (
+          // In heading-up mode the camera bearing is bound to the device
+          // heading, so a north reset wouldn't stick — only offer the tap in
+          // free mode where the user can manually rotate the map.
+          <CompassBadge heading={heading} onPress={headingUp ? undefined : resetNorth} />
+        ) : null}
         {showRecenter && userCoordinate ? (
           <View style={[styles.controlButton, { backgroundColor: theme.background }]}>
             <Pressable

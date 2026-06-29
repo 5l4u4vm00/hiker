@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -7,19 +7,22 @@ import { ThemedView } from '@/components/themed-view';
 export interface CompassBadgeProps {
   /** Device heading in degrees clockwise from north (0 = north). */
   heading: number;
+  /** When set, the badge becomes a button (e.g. to reset the map to north). */
+  onPress?: () => void;
   style?: StyleProp<ViewStyle>;
 }
 
 /**
  * A compass that always points to true north: a two-tone arrow (red north tip,
  * gray south tail) rotates by `-heading` so it tracks north as the device turns,
- * with the current facing bearing shown upright below.
+ * with the current facing bearing shown upright below. When `onPress` is set the
+ * badge is tappable (used to snap the map back to north-up).
  */
-export function CompassBadge({ heading, style }: CompassBadgeProps) {
+export function CompassBadge({ heading, onPress, style }: CompassBadgeProps) {
   const { t } = useTranslation();
   const bearing = Math.round(((heading % 360) + 360) % 360);
-  return (
-    <ThemedView type="backgroundElement" style={[styles.badge, style]}>
+  const content = (
+    <>
       <View style={styles.arrowBox}>
         <View style={[styles.dial, { transform: [{ rotate: `${-heading}deg` }] }]}>
           <ThemedText style={styles.northLabel}>{t('units.cardinals.N')}</ThemedText>
@@ -28,6 +31,24 @@ export function CompassBadge({ heading, style }: CompassBadgeProps) {
         </View>
       </View>
       <ThemedText style={styles.bearing}>{bearing}°</ThemedText>
+    </>
+  );
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={t('mapCanvas.resetNorth')}>
+        <ThemedView type="backgroundElement" style={[styles.badge, style]}>
+          {content}
+        </ThemedView>
+      </Pressable>
+    );
+  }
+  return (
+    <ThemedView type="backgroundElement" style={[styles.badge, style]}>
+      {content}
     </ThemedView>
   );
 }
