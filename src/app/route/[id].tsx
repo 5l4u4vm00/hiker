@@ -22,7 +22,9 @@ import {
   regionForRoute,
 } from '@/map/offlineTiles';
 import { useFollowStore } from '@/state/followStore';
+import { useRecordingStore } from '@/state/recordingStore';
 import { useRoutePreviewStore } from '@/state/routePreviewStore';
+import { startRecording } from '@/tracking/recorder';
 import { formatDistance, formatElevation } from '@/tracking/stats';
 
 export default function RouteDetailScreen() {
@@ -107,9 +109,35 @@ export default function RouteDetailScreen() {
     if (!route) return;
     // The Map screen loads the followed route from SQLite by id, so persist first.
     await ensureSaved();
-    useFollowStore.getState().follow('route', route.id);
-    router.navigate('/(tabs)');
-  }, [route, ensureSaved]);
+
+    const startFollow = (record: boolean) => {
+      (async () => {
+        if (record) {
+          // Link the recording to this route so the hike knows which route it
+          // followed. Permission denial falls through to follow-only.
+          const trackId = await startRecording(route.name, route.id);
+          if (!trackId) {
+            Alert.alert(t('map.permissionTitle'), t('map.permissionMessage'));
+          }
+        }
+        useFollowStore.getState().follow('route', route.id);
+        router.navigate('/(tabs)');
+      })();
+    };
+
+    // A recording cannot coexist with another in progress, so only offer to
+    // record when idle; otherwise just follow.
+    if (useRecordingStore.getState().status !== 'idle') {
+      startFollow(false);
+      return;
+    }
+
+    Alert.alert(t('map.followRecordTitle'), t('map.followRecordMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('map.followOnly'), onPress: () => startFollow(false) },
+      { text: t('map.followAndRecord'), onPress: () => startFollow(true) },
+    ]);
+  }, [route, ensureSaved, t]);
 
   const onDelete = useCallback(() => {
     if (!downloadedPackId) return;

@@ -12,6 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { getJournalEntries } from '@/db/journal';
+import { getRoute } from '@/db/routes';
 import { deleteTrack, getTrack, getTrackPoints } from '@/db/tracks';
 import type { JournalEntry, Track, TrackPoint } from '@/db/types';
 import { shareTrackAsGpx } from '@/gpx/export';
@@ -54,15 +55,21 @@ export default function HikeDetailScreen() {
   const [track, setTrack] = useState<Track | null>(null);
   const [points, setPoints] = useState<TrackPoint[]>([]);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  // Name of the route this hike followed, if it was recorded against one and
+  // that route still exists.
+  const [routeName, setRouteName] = useState<string | null>(null);
 
   // Reload on focus so edits made on the edit screen show on return.
   useFocusEffect(
     useCallback(() => {
       if (!id) return;
       (async () => {
-        setTrack(await getTrack(id));
+        const loaded = await getTrack(id);
+        setTrack(loaded);
         setPoints(await getTrackPoints(id));
         setEntries(await getJournalEntries(id));
+        const route = loaded?.routeId ? await getRoute(loaded.routeId) : null;
+        setRouteName(route?.name ?? null);
       })();
     }, [id]),
   );
@@ -160,6 +167,19 @@ export default function HikeDetailScreen() {
                     {track.weatherTempC != null ? ` · ${Math.round(track.weatherTempC)}°C` : ''}
                   </ThemedText>
                 </View>
+              ) : null}
+              {routeName && track.routeId ? (
+                <Pressable
+                  onPress={() =>
+                    router.push({ pathname: '/route/[id]', params: { id: track.routeId! } })
+                  }
+                  style={[styles.weatherChip, { backgroundColor: theme.backgroundElement }]}
+                  accessibilityRole="button">
+                  <Ionicons name="trail-sign-outline" size={14} color={theme.textSecondary} />
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {t('hikeDetail.route', { name: routeName })}
+                  </ThemedText>
+                </Pressable>
               ) : null}
             </View>
           </View>

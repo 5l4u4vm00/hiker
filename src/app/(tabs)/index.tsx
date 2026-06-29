@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { GeoJSONSource, type LngLatBounds, Layer } from '@maplibre/maplibre-react-native';
+import { GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,7 +19,7 @@ import { getRoute, getRouteWaypoints } from '@/db/routes';
 import { getTrack, getTrackPoints } from '@/db/tracks';
 import type { TrackPoint, Waypoint } from '@/db/types';
 import { useTheme } from '@/hooks/use-theme';
-import { boundsOfCoords, formatCoordinate, lastCoordinate, pointsToLineString } from '@/map/mapStyle';
+import { formatCoordinate, lastCoordinate, pointsToLineString } from '@/map/mapStyle';
 import { useCurrentLocation } from '@/map/use-current-location';
 import { useFollowNavigation } from '@/map/use-follow-navigation';
 import { useFollowStore } from '@/state/followStore';
@@ -43,6 +43,7 @@ import {
   formatSpeed,
   WARNING_COLOR,
 } from '@/tracking/stats';
+import { fetchWeather, type WeatherSnapshot } from '@/weather/openMeteo';
 import { weatherIcon, weatherLabel } from '@/weather/weatherCodes';
 
 const POLL_INTERVAL_MS = 3000;
@@ -69,8 +70,13 @@ export default function MapScreen() {
   const [initialCenter, setInitialCenter] = useState<[number, number] | null>(null);
   const [statsCollapsed, setStatsCollapsed] = useState(true);
   const [hudHeight, setHudHeight] = useState(0);
+  // Weather snapshot for the follow-without-recording panel. While recording,
+  // the live store already carries weather, so this only fills the gap when
+  // following without an active recording.
+  const [followWeather, setFollowWeather] = useState<WeatherSnapshot | null>(null);
 
   const isActive = status === 'recording' || status === 'paused';
+  const isFollowing = followPath != null;
 
   // Load the path to follow (geometry + waypoints) whenever the selection
   // changes — a saved route or one of the user's recorded tracks.
@@ -140,22 +146,27 @@ export default function MapScreen() {
     return () => clearInterval(id);
   }, [status, startedAt]);
 
+  // Fetch a one-time weather snapshot while following without recording (the
+  // recording flow has its own weather). Best-effort: a single fix + lookup per
+  // follow session, silently no-op offline.
+  useEffect(() => {
+    if (!isFollowing || isActive) return;
+    let cancelled = false;
+    (async () => {
+      setFollowWeather(null);
+      const coord = await getInitialCoordinate();
+      if (!coord || cancelled) return;
+      const weather = await fetchWeather(coord[1], coord[0]);
+      if (!cancelled && weather) setFollowWeather(weather);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isFollowing, isActive]);
+
   const last = lastCoordinate(points);
   const liveCoord: [number, number] | null =
     live.lat != null && live.lon != null ? [live.lon, live.lat] : null;
-  // While recording, follow the latest fix (prefer the persisted point, falling
-  // back to the live sample, then the entry center); otherwise (and when not
-  // framing a route) center on the user's current location.
-  const center = isActive
-    ? (last ?? liveCoord ?? initialCenter ?? undefined)
-    : (initialCenter ?? undefined);
-
-  // Before recording, frame the whole route to follow; once recording, the
-  // camera tracks the user (centerCoordinate) so the route line scrolls past.
-  const followBounds: LngLatBounds | undefined =
-    !isActive && followPath
-      ? (boundsOfCoords(followPath.geometry.coordinates) ?? undefined)
-      : undefined;
 
   const handleStart = useCallback(() => {
     Alert.alert(t('map.startTitle'), t('map.startMessage'), [
@@ -166,7 +177,10 @@ export default function MapScreen() {
           setBusy(true);
           try {
             const name = t('map.hikeName', { date: new Date().toLocaleDateString() });
-            const id = await startRecording(name);
+            // Link the hike to the route being followed, if any, so a manual
+            // start mid-follow is associated just like the prompted start.
+            const routeId = followKind === 'route' ? followId : null;
+            const id = await startRecording(name, routeId);
             if (!id) {
               Alert.alert(t('map.permissionTitle'), t('map.permissionMessage'));
             }
@@ -176,7 +190,7 @@ export default function MapScreen() {
         },
       },
     ]);
-  }, [t]);
+  }, [t, followKind, followId]);
 
   const handleFinish = useCallback(() => {
     Alert.alert(t('map.finishTitle'), t('map.finishMessage'), [
@@ -216,6 +230,15 @@ export default function MapScreen() {
   const currentCoord: [number, number] | null =
     isActive && live.lat != null && live.lon != null ? [live.lon, live.lat] : watched;
 
+  // Camera center. While recording, follow the latest fix (persisted point, then
+  // live sample). While following without recording, center on the user's live
+  // position too (heading-up navigation), falling back to the entry center.
+  const center = isActive
+    ? (last ?? liveCoord ?? initialCenter ?? undefined)
+    : isFollowing
+      ? (currentCoord ?? initialCenter ?? undefined)
+      : (initialCenter ?? undefined);
+
   // Live route guidance (progress, remaining, ETA, next waypoint, off-route).
   // Decoupled from recording: uses whichever user position is available and, when
   // recording, the moving pace for a better ETA.
@@ -233,8 +256,8 @@ export default function MapScreen() {
   // Sunset / remaining daylight from the latest fix (falling back to the
   // initial center before the first point arrives). `elapsed` ticking each
   // second keeps the countdown fresh.
-  const sunLat = live.lat ?? initialCenter?.[1] ?? null;
-  const sunLon = live.lon ?? initialCenter?.[0] ?? null;
+  const sunLat = live.lat ?? currentCoord?.[1] ?? initialCenter?.[1] ?? null;
+  const sunLon = live.lon ?? currentCoord?.[0] ?? initialCenter?.[0] ?? null;
   const sun = sunLat != null && sunLon != null ? daylight(sunLat, sunLon) : null;
   const gps = formatGpsQuality(live.accuracyM);
 
@@ -286,12 +309,11 @@ export default function MapScreen() {
     <View style={styles.container}>
       <MapCanvas
         centerCoordinate={center}
-        zoomLevel={isActive ? 15 : initialCenter ? 14 : undefined}
-        bounds={followBounds}
-        headingUp={isActive}
+        zoomLevel={isActive || isFollowing ? 15 : initialCenter ? 14 : undefined}
+        headingUp={isActive || isFollowing}
         showCompass
         userCoordinate={currentCoord ?? undefined}
-        showRecenter={!isActive}
+        showRecenter={!isActive && !isFollowing}
         controlsTopInset={insets.top + followInset}>
         {routeLineFeature ? (
           <GeoJSONSource id="follow-route" data={routeLineFeature}>
@@ -468,6 +490,45 @@ export default function MapScreen() {
             />
           </View>
         </Animated.View>
+      ) : isFollowing ? (
+        // Following without recording: a compact panel with the daylight safety
+        // readout and a clear way to start recording (which links this route).
+        <View
+          style={[
+            styles.panel,
+            { backgroundColor: theme.background, paddingBottom: insets.bottom + Spacing.three },
+          ]}>
+          <StatGrid>
+            <StatCard
+              compact
+              icon="partly-sunny"
+              label={sun ? t('map.sunset', { time: formatClock(sun.sunsetMs) }) : t('map.daylight')}
+              value={
+                sun
+                  ? sun.remainingMs > 0
+                    ? t('map.timeLeft', { duration: formatDurationShort(sun.remainingMs / 1000) })
+                    : t('map.afterSunset')
+                  : '--'
+              }
+              tint={sun && (sun.remainingMs <= 0 || sun.isLow) ? WARNING_COLOR : undefined}
+            />
+            <StatCard
+              compact
+              icon={followWeather ? weatherIcon(followWeather.code) : 'cloud-offline'}
+              label={followWeather ? weatherLabel(followWeather.code) : t('map.weather')}
+              value={followWeather ? `${Math.round(followWeather.tempC)}°C` : '--'}
+            />
+          </StatGrid>
+          <View style={styles.row}>
+            <PrimaryButton
+              title={t('map.startHike')}
+              variant="primary"
+              onPress={handleStart}
+              loading={busy}
+              style={styles.flex}
+            />
+          </View>
+        </View>
       ) : (
         <Pressable
           accessibilityRole="button"

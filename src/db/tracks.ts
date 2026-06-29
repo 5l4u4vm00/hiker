@@ -12,6 +12,7 @@ interface TrackRow {
   duration_s: number;
   max_alt: number | null;
   status: string;
+  route_id: string | null;
   weather_temp_c: number | null;
   weather_code: number | null;
   weather_fetched_at: number | null;
@@ -40,6 +41,7 @@ function mapTrack(row: TrackRow): Track {
     durationS: row.duration_s,
     maxAlt: row.max_alt,
     status: row.status as TrackStatus,
+    routeId: row.route_id,
     weatherTempC: row.weather_temp_c,
     weatherCode: row.weather_code,
     weatherFetchedAt: row.weather_fetched_at,
@@ -59,16 +61,17 @@ function mapPoint(row: TrackPointRow): TrackPoint {
   };
 }
 
-export async function createTrack(name: string): Promise<Track> {
+export async function createTrack(name: string, routeId?: string | null): Promise<Track> {
   const db = await getDatabase();
   const id = createId();
   const startedAt = Date.now();
   await db.runAsync(
-    'INSERT INTO tracks (id, name, started_at, status) VALUES (?, ?, ?, ?)',
+    'INSERT INTO tracks (id, name, started_at, status, route_id) VALUES (?, ?, ?, ?, ?)',
     id,
     name,
     startedAt,
     'recording',
+    routeId ?? null,
   );
   return {
     id,
@@ -81,6 +84,7 @@ export async function createTrack(name: string): Promise<Track> {
     durationS: 0,
     maxAlt: null,
     status: 'recording',
+    routeId: routeId ?? null,
     weatherTempC: null,
     weatherCode: null,
     weatherFetchedAt: null,

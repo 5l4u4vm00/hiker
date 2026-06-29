@@ -119,11 +119,14 @@ async function captureStartWeather(trackId: string): Promise<void> {
   }
 }
 
-export async function startRecording(name: string): Promise<string | null> {
+export async function startRecording(
+  name: string,
+  routeId?: string | null,
+): Promise<string | null> {
   const perms = await requestPermissions();
   if (!perms.foreground) return null;
 
-  const track = await createTrack(name);
+  const track = await createTrack(name, routeId);
   useRecordingStore.getState().begin(track.id, track.startedAt);
   await startUpdates();
   void captureStartWeather(track.id);

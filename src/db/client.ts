@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS tracks (
   descent_m REAL NOT NULL DEFAULT 0,
   duration_s INTEGER NOT NULL DEFAULT 0,
   max_alt REAL,
-  status TEXT NOT NULL DEFAULT 'recording'
+  status TEXT NOT NULL DEFAULT 'recording',
+  route_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS track_points (
@@ -110,6 +111,7 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
     { name: 'weather_temp_c', ddl: 'weather_temp_c REAL' },
     { name: 'weather_code', ddl: 'weather_code INTEGER' },
     { name: 'weather_fetched_at', ddl: 'weather_fetched_at INTEGER' },
+    { name: 'route_id', ddl: 'route_id TEXT' },
   ]);
   return db;
 }

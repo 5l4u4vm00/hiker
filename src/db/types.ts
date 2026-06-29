@@ -18,6 +18,8 @@ export interface Track {
   durationS: number;
   maxAlt: number | null;
   status: TrackStatus;
+  /** The followed route this hike was recorded against, if any. */
+  routeId: string | null;
   /** Air temperature (°C) captured at the start of the hike, if available. */
   weatherTempC: number | null;
   /** WMO weather code captured at the start of the hike, if available. */
