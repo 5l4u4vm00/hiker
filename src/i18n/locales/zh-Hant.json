@@ -95,9 +95,6 @@
     "langSystem": "系統",
     "langEnglish": "English",
     "langChinese": "中文",
-    "map": "地圖",
-    "maptilerTokenPlaceholder": "貼上你的 MapTiler 金鑰",
-    "maptilerTokenHelp": "可在 maptiler.com 免費取得金鑰。留空則使用 App 內建金鑰。",
     "about": "關於",
     "aboutText": "Hiker 將你的所有資料儲存在這部裝置上。地圖資料 © OpenStreetMap 貢獻者。"
   },

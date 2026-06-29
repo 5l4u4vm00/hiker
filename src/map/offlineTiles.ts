@@ -2,7 +2,7 @@ import { OfflineManager, type LngLatBounds } from '@maplibre/maplibre-react-nati
 import { File, Paths } from 'expo-file-system';
 
 import { buildStyleJson } from '@/map/mapStyle';
-import { resolveMapToken, useMapTokenStore } from '@/state/mapTokenStore';
+import { MAPTILER_TOKEN } from '@/state/mapTokenStore';
 
 /**
  * MapLibre's offline downloader takes a style *URL*, not an inline style object
@@ -18,8 +18,7 @@ function offlineStyleUri(): string {
     file.delete();
   }
   file.create();
-  const token = resolveMapToken(useMapTokenStore.getState().token);
-  file.write(buildStyleJson(token));
+  file.write(buildStyleJson(MAPTILER_TOKEN));
   return file.uri;
 }
 

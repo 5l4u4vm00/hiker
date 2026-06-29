@@ -8,8 +8,8 @@ import type { TrackPoint } from '@/db/types';
  * MapTiler's terms permit offline caching of bounded areas (unlike the public OSM
  * servers), so the offline downloader can use this style directly.
  *
- * The token is supplied by the caller (see `@/state/mapTokenStore`) rather than
- * read here, so the style rebuilds when the user changes their key in Settings.
+ * The token is supplied by the caller (see `MAPTILER_TOKEN` in
+ * `@/state/mapTokenStore`) rather than read here.
  */
 export function buildRasterStyle(token: string): StyleSpecification {
   return {

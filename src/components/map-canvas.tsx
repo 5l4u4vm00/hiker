@@ -16,7 +16,7 @@ import { UserLocationHeading } from '@/components/user-location-heading';
 import { useTheme } from '@/hooks/use-theme';
 import { buildRasterStyle, DEFAULT_ZOOM, TAIWAN_CENTER } from '@/map/mapStyle';
 import { useDeviceHeading } from '@/map/use-device-heading';
-import { resolveMapToken, useMapTokenStore } from '@/state/mapTokenStore';
+import { MAPTILER_TOKEN } from '@/state/mapTokenStore';
 
 const BOUNDS_PADDING = { top: 40, right: 40, bottom: 40, left: 40 };
 const MIN_ZOOM = 1;
@@ -108,10 +108,7 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
   const theme = useTheme();
   const { t } = useTranslation();
   const heading = useDeviceHeading(showCompass || headingUp);
-  // Rebuilds whenever the user changes their MapTiler key in Settings; the new
-  // style object makes MapLibre reload the tiles with the new token.
-  const mapToken = useMapTokenStore((s) => s.token);
-  const mapStyle = buildRasterStyle(resolveMapToken(mapToken));
+  const mapStyle = buildRasterStyle(MAPTILER_TOKEN);
   // MapLibre throws "padding is greater than map's height or width" if a bounds
   // fit runs before the map view has been measured (e.g. during a tab
   // transition). Gate the bounds camera on the map having finished loading,

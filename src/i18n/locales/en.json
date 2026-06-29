@@ -95,9 +95,6 @@
     "langSystem": "System",
     "langEnglish": "English",
     "langChinese": "中文",
-    "map": "Map",
-    "maptilerTokenPlaceholder": "Paste your MapTiler key",
-    "maptilerTokenHelp": "Get a free key at maptiler.com. Leave blank to use the app's built-in key.",
     "about": "About",
     "aboutText": "Hiker stores all your data on this device. Maps © OpenStreetMap contributors."
   },
