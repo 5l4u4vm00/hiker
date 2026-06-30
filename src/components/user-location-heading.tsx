@@ -44,20 +44,25 @@ export function UserLocationHeading() {
             }}
           />
         ) : (
-          <>
+          // Returned as an array, not a Fragment: UserLocation's GeoJSONSource
+          // clones each top-level child to inject its `source`, and a
+          // React.Fragment cannot receive that prop.
+          [
             <Layer
+              key="mlrn-user-dot-white"
               id="mlrn-user-dot-white"
               type="circle"
               source={SOURCE}
               paint={{ 'circle-radius': 9, 'circle-color': '#ffffff', 'circle-pitch-alignment': 'map' }}
-            />
+            />,
             <Layer
+              key="mlrn-user-dot-blue"
               id="mlrn-user-dot-blue"
               type="circle"
               source={SOURCE}
               paint={{ 'circle-radius': 6, 'circle-color': PUCK_BLUE, 'circle-pitch-alignment': 'map' }}
-            />
-          </>
+            />,
+          ]
         )}
       </UserLocation>
     </>

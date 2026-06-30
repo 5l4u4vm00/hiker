@@ -43,9 +43,13 @@ export async function seedPoisIfEmpty(): Promise<void> {
   if ((row?.count ?? 0) > 0) return;
 
   const seed = poiSeed as Omit<Poi, 'id'>[];
-  await db.withTransactionAsync(async () => {
+  // Exclusive transaction: this seed runs at startup alongside other DB work
+  // (route seeding, recording restore, the background location task) on the
+  // shared connection, so a plain transaction risks colliding with another
+  // open transaction. Queries inside must run on the provided `txn`.
+  await db.withExclusiveTransactionAsync(async (txn) => {
     for (const poi of seed) {
-      await db.runAsync(
+      await txn.runAsync(
         'INSERT INTO pois (id, name, category, lat, lon, elevation, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
         createId(),
         poi.name,

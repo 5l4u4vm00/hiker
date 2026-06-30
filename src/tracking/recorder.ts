@@ -10,7 +10,7 @@ import {
   updateTrackWeather,
 } from '@/db/tracks';
 import type { TrackPoint } from '@/db/types';
-import { useRecordingStore } from '@/state/recordingStore';
+import { activeElapsedMs, useRecordingStore } from '@/state/recordingStore';
 import { LOCATION_TASK } from '@/tracking/locationTask';
 import { computeStats } from '@/tracking/stats';
 import { fetchWeather } from '@/weather/openMeteo';
@@ -137,26 +137,31 @@ export async function pauseRecording(): Promise<void> {
   const { trackId } = useRecordingStore.getState();
   if (!trackId) return;
   await setTrackStatus(trackId, 'paused');
-  useRecordingStore.getState().setStatus('paused');
+  useRecordingStore.getState().pause();
 }
 
 export async function resumeRecording(): Promise<void> {
   const { trackId } = useRecordingStore.getState();
   if (!trackId) return;
   await setTrackStatus(trackId, 'recording');
-  useRecordingStore.getState().setStatus('recording');
+  useRecordingStore.getState().resume();
   await startUpdates();
 }
 
 /** Stops recording, persists final stats, and returns the completed track id. */
 export async function stopRecording(): Promise<string | null> {
-  const { trackId } = useRecordingStore.getState();
+  const state = useRecordingStore.getState();
+  const { trackId } = state;
   if (!trackId) return null;
 
   await stopUpdates();
   const points = await getTrackPoints(trackId);
+  // Distance/elevation come from the GPS points, but duration is the wall-clock
+  // active time (excluding pauses) so it matches the live timer rather than the
+  // narrower span between the first and last persisted point.
   const stats = computeStats(points);
-  await finishTrack(trackId, stats);
+  const durationS = Math.round(activeElapsedMs(state) / 1000);
+  await finishTrack(trackId, { ...stats, durationS });
   useRecordingStore.getState().reset();
   return trackId;
 }
@@ -179,8 +184,11 @@ export async function restoreRecording(): Promise<void> {
   const active = await getActiveTrack();
   if (!active) return;
   const store = useRecordingStore.getState();
+  // `begin` re-attaches the track in the recording state with a fresh paused
+  // accumulator. Paused time before a restart cannot be recovered, so elapsed is
+  // measured from `startedAt`; if the track was paused, freeze it again now.
   store.begin(active.id, active.startedAt);
-  store.setStatus(active.status === 'paused' ? 'paused' : 'recording');
+  if (active.status === 'paused') store.pause();
   const points = await getTrackPoints(active.id);
   store.setStats(computeStats(points));
   setLiveFromLastPoint(points);

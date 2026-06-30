@@ -238,9 +238,15 @@ export async function addTrackPoint(point: TrackPointInput): Promise<void> {
 export async function addTrackPoints(points: TrackPointInput[]): Promise<void> {
   if (points.length === 0) return;
   const db = await getDatabase();
-  await db.withTransactionAsync(async () => {
+  // The background location task can fire several times in quick succession,
+  // and it shares this connection with the foreground. `withTransactionAsync`
+  // is not safe for overlapping calls (the second BEGIN lands inside the first
+  // transaction -> "cannot start a transaction within a transaction"). The
+  // exclusive variant serialises access to the connection for the duration of
+  // the transaction. Queries inside must run on the provided `txn`.
+  await db.withExclusiveTransactionAsync(async (txn) => {
     for (const p of points) {
-      await db.runAsync(
+      await txn.runAsync(
         'INSERT INTO track_points (track_id, lat, lon, alt, accuracy, speed, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
         p.trackId,
         p.lat,

@@ -24,7 +24,7 @@ import { formatCoordinate, lastCoordinate, pointsToLineString } from '@/map/mapS
 import { useCurrentLocation } from '@/map/use-current-location';
 import { useFollowNavigation } from '@/map/use-follow-navigation';
 import { useFollowStore } from '@/state/followStore';
-import { useRecordingStore } from '@/state/recordingStore';
+import { activeElapsedMs, useRecordingStore } from '@/state/recordingStore';
 import { daylight, formatClock } from '@/sun/daylight';
 import {
   discardRecording,
@@ -60,13 +60,12 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { t } = useTranslation();
-  const { trackId, status, startedAt, stats, live } = useRecordingStore();
+  const { trackId, status, startedAt, pausedAt, pausedMs, stats, live } = useRecordingStore();
   const followKind = useFollowStore((s) => s.kind);
   const followId = useFollowStore((s) => s.id);
   const clearFollow = useFollowStore((s) => s.clear);
   const [points, setPoints] = useState<TrackPoint[]>([]);
   const [followPath, setFollowPath] = useState<FollowPath | null>(null);
-  const [elapsed, setElapsed] = useState(0);
   const [busy, setBusy] = useState(false);
   const [initialCenter, setInitialCenter] = useState<[number, number] | null>(null);
   const [statsCollapsed, setStatsCollapsed] = useState(true);
@@ -140,12 +139,15 @@ export default function MapScreen() {
     };
   }, [trackId, isActive]);
 
-  // Tick the elapsed timer every second while recording.
+  // Re-render every second while recording so the elapsed timer and the daylight
+  // countdown stay fresh; the durations themselves are derived from wall-clock
+  // values, not from this tick.
+  const [, setTick] = useState(0);
   useEffect(() => {
-    if (status !== 'recording' || !startedAt) return;
-    const id = setInterval(() => setElapsed(Math.round((Date.now() - startedAt) / 1000)), 1000);
+    if (status !== 'recording') return;
+    const id = setInterval(() => setTick((n) => n + 1), 1000);
     return () => clearInterval(id);
-  }, [status, startedAt]);
+  }, [status]);
 
   // Fetch a one-time weather snapshot while following without recording (the
   // recording flow has its own weather). Best-effort: a single fix + lookup per
@@ -223,7 +225,10 @@ export default function MapScreen() {
     ]);
   }, [t]);
 
-  const liveDuration = status === 'recording' ? Math.max(elapsed, stats.durationS) : stats.durationS;
+  // Elapsed recording time (excludes paused spans), the single source of truth
+  // for the timer. Frozen while paused, so it never drops when pausing/finishing
+  // the way the old GPS-point-span duration did.
+  const liveDuration = Math.round(activeElapsedMs({ startedAt, pausedAt, pausedMs }) / 1000);
 
   // Current coordinates for the top-left readout. While recording the store
   // already holds fresh coords, so the standalone watch only runs otherwise.
@@ -255,8 +260,8 @@ export default function MapScreen() {
   const followInset = followPath ? Spacing.two + hudHeight : 0;
 
   // Sunset / remaining daylight from the latest fix (falling back to the
-  // initial center before the first point arrives). `elapsed` ticking each
-  // second keeps the countdown fresh.
+  // initial center before the first point arrives). The per-second tick keeps
+  // the countdown fresh.
   const sunLat = live.lat ?? currentCoord?.[1] ?? initialCenter?.[1] ?? null;
   const sunLon = live.lon ?? currentCoord?.[0] ?? initialCenter?.[0] ?? null;
   const sun = sunLat != null && sunLon != null ? daylight(sunLat, sunLon) : null;
