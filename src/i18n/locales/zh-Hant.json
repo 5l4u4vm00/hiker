@@ -100,7 +100,17 @@
     "langEnglish": "English",
     "langChinese": "中文",
     "about": "關於",
-    "aboutText": "Hiker 將你的所有資料儲存在這部裝置上。地圖資料 © OpenStreetMap 貢獻者。"
+    "aboutText": "Hiker 將你的所有資料儲存在這部裝置上。地圖資料 © OpenStreetMap 貢獻者。",
+    "data": "資料",
+    "clearData": "清除所有資料",
+    "clearDataConfirmTitle": "要清除所有資料嗎？",
+    "clearDataConfirmMessage": "這會永久刪除這部裝置上所有的健行記錄、路線、日誌與緊急聯絡人，且無法復原。",
+    "clearDataRecordingTitle": "正在記錄中",
+    "clearDataRecordingMessage": "請先停止目前的記錄，再清除資料。",
+    "clearDataDoneTitle": "已清除資料",
+    "clearDataDoneMessage": "你的所有資料已從這部裝置移除。",
+    "clearDataErrorTitle": "無法清除資料",
+    "clearDataErrorMessage": "清除資料時發生問題，請再試一次。"
   },
   "safety": {
     "title": "安全",

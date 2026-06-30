@@ -1,13 +1,17 @@
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
+import { resetAllData } from '@/db/reset';
 import { useTheme } from '@/hooks/use-theme';
 import { type LanguagePreference, useLanguageStore } from '@/state/languageStore';
+import { useRecordingStore } from '@/state/recordingStore';
 import { type ThemePreference, useThemeStore } from '@/state/themeStore';
+
+const DESTRUCTIVE = '#E5484D';
 
 const THEME_OPTIONS: { value: ThemePreference; labelKey: 'themeSystem' | 'themeLight' | 'themeDark' }[] =
   [
@@ -91,6 +95,43 @@ function LanguageSegmentedControl() {
   );
 }
 
+function ClearDataButton() {
+  const { t } = useTranslation();
+
+  const performClear = async () => {
+    try {
+      await resetAllData();
+      Alert.alert(t('settings.clearDataDoneTitle'), t('settings.clearDataDoneMessage'));
+    } catch (err) {
+      console.warn('[settings] clear all data failed', err);
+      Alert.alert(t('settings.clearDataErrorTitle'), t('settings.clearDataErrorMessage'));
+    }
+  };
+
+  const onPress = () => {
+    // Deleting the active track mid-recording would corrupt live recording state.
+    if (useRecordingStore.getState().status !== 'idle') {
+      Alert.alert(t('settings.clearDataRecordingTitle'), t('settings.clearDataRecordingMessage'));
+      return;
+    }
+    Alert.alert(t('settings.clearDataConfirmTitle'), t('settings.clearDataConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.clearData'), style: 'destructive', onPress: performClear },
+    ]);
+  };
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.clearButton, pressed && { opacity: 0.6 }]}>
+      <ThemedText style={[styles.clearLabel, { color: DESTRUCTIVE }]}>
+        {t('settings.clearData')}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -122,6 +163,11 @@ export default function SettingsScreen() {
             {t('settings.aboutText')}
           </ThemedText>
         </View>
+
+        <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>{t('settings.data')}</ThemedText>
+          <ClearDataButton />
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -144,4 +190,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   segmentLabel: { fontWeight: '600' },
+  clearButton: {
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.three,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: DESTRUCTIVE,
+    alignItems: 'center',
+  },
+  clearLabel: { fontWeight: '600' },
 });

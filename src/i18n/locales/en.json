@@ -100,7 +100,17 @@
     "langEnglish": "English",
     "langChinese": "中文",
     "about": "About",
-    "aboutText": "Hiker stores all your data on this device. Maps © OpenStreetMap contributors."
+    "aboutText": "Hiker stores all your data on this device. Maps © OpenStreetMap contributors.",
+    "data": "Data",
+    "clearData": "Clear all data",
+    "clearDataConfirmTitle": "Clear all data?",
+    "clearDataConfirmMessage": "This permanently deletes all your hikes, routes, journal entries, and emergency contacts on this device. This cannot be undone.",
+    "clearDataRecordingTitle": "Recording in progress",
+    "clearDataRecordingMessage": "Stop the current recording before clearing your data.",
+    "clearDataDoneTitle": "Data cleared",
+    "clearDataDoneMessage": "All your data has been removed from this device.",
+    "clearDataErrorTitle": "Could not clear data",
+    "clearDataErrorMessage": "Something went wrong while clearing your data. Please try again."
   },
   "safety": {
     "title": "Safety",
