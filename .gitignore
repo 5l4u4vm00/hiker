@@ -34,6 +34,10 @@ yarn-error.*
 .env
 .env*.local
 
+# EAS submit credentials
+play-store-service-account.json
+*.keystore
+
 # typescript
 *.tsbuildinfo
 
