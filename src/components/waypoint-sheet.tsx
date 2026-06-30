@@ -21,6 +21,7 @@ export const WAYPOINT_META: Record<
   peak: { icon: 'triangle', color: '#8E4EC6' },
   junction: { icon: 'git-branch', color: '#E5484D' },
   hut: { icon: 'home', color: '#30A46C' },
+  shelter: { icon: 'bed', color: '#A18072' },
   view: { icon: 'eye', color: '#0EA5E9' },
   other: { icon: 'location', color: '#6B7280' },
 };

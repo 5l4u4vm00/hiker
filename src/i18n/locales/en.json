@@ -206,7 +206,17 @@
     "recenter": "Recenter on my location",
     "resetNorth": "Reset map to north",
     "zoomIn": "Zoom in",
-    "zoomOut": "Zoom out"
+    "zoomOut": "Zoom out",
+    "layers": "Map layers"
+  },
+  "layers": {
+    "title": "Map layers",
+    "terrain": "Terrain",
+    "hillshade": "Hillshade relief",
+    "routeHelpers": "Route helpers",
+    "distanceMarkers": "Distance markers (km)",
+    "nearbyRoutes": "Nearby routes",
+    "pois": "Points of interest"
   },
   "plan": {
     "title": "Plan a route",
@@ -260,6 +270,7 @@
     "peak": "Peak",
     "junction": "Junction",
     "hut": "Hut",
+    "shelter": "Shelter",
     "view": "View",
     "other": "Other"
   },

@@ -172,3 +172,15 @@ export async function getRouteWaypoints(routeId: string): Promise<Waypoint[]> {
   );
   return rows.map(mapWaypoint);
 }
+
+/**
+ * Every waypoint attached to a saved route, across all routes. Used to surface
+ * the user's own placed waypoints as a toggleable POI layer on the map.
+ */
+export async function getAllWaypoints(): Promise<Waypoint[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<WaypointRow>(
+    'SELECT * FROM waypoints WHERE route_id IS NOT NULL',
+  );
+  return rows.map(mapWaypoint);
+}

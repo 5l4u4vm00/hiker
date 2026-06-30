@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { CompassBadge } from '@/components/compass-badge';
+import { LayerSheet } from '@/components/layer-sheet';
 import { UserLocationHeading } from '@/components/user-location-heading';
 import { useTheme } from '@/hooks/use-theme';
 import { buildRasterStyle, DEFAULT_ZOOM, TAIWAN_CENTER } from '@/map/mapStyle';
@@ -63,6 +64,8 @@ export interface MapCanvasProps {
   controlsTopInset?: number;
   /** Show a north-pointing compass above the zoom controls (driven by the device heading). */
   showCompass?: boolean;
+  /** Show a layers button (top-right) that opens the toggleable map-layers sheet. */
+  showLayers?: boolean;
   /** Called with the `[lon, lat]` of a single tap on the map (e.g. to draw a route). */
   onPress?: (lngLat: [number, number]) => void;
   /** Called with the `[lon, lat]` of a long press on the map (e.g. to drop a waypoint). */
@@ -96,6 +99,7 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
     headingUp = false,
     controlsTopInset = 0,
     showCompass = false,
+    showLayers = false,
     onPress,
     onLongPress,
     mapRef,
@@ -109,6 +113,7 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
   const { t } = useTranslation();
   const heading = useDeviceHeading(showCompass || headingUp);
   const mapStyle = buildRasterStyle(MAPTILER_TOKEN);
+  const [layerSheetVisible, setLayerSheetVisible] = useState(false);
   // MapLibre throws "padding is greater than map's height or width" if a bounds
   // fit runs before the map view has been measured (e.g. during a tab
   // transition). Gate the bounds camera on the map having finished loading,
@@ -208,6 +213,18 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
           // free mode where the user can manually rotate the map.
           <CompassBadge heading={heading} onPress={headingUp ? undefined : resetNorth} />
         ) : null}
+        {showLayers ? (
+          <View style={[styles.controlButton, { backgroundColor: theme.background }]}>
+            <Pressable
+              onPress={() => setLayerSheetVisible(true)}
+              style={styles.zoomButton}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel={t('mapCanvas.layers')}>
+              <Ionicons name="layers-outline" size={22} color={theme.text} />
+            </Pressable>
+          </View>
+        ) : null}
         {showRecenter && userCoordinate ? (
           <View style={[styles.controlButton, { backgroundColor: theme.background }]}>
             <Pressable
@@ -240,6 +257,10 @@ export const MapCanvas = forwardRef<CameraRef, MapCanvasProps>(function MapCanva
           </Pressable>
         </View>
       </View>
+
+      {showLayers ? (
+        <LayerSheet visible={layerSheetVisible} onClose={() => setLayerSheetVisible(false)} />
+      ) : null}
     </View>
   );
 });

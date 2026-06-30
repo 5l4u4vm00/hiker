@@ -206,7 +206,17 @@
     "recenter": "回到我的位置",
     "resetNorth": "地圖回正北",
     "zoomIn": "放大",
-    "zoomOut": "縮小"
+    "zoomOut": "縮小",
+    "layers": "地圖圖層"
+  },
+  "layers": {
+    "title": "地圖圖層",
+    "terrain": "地形",
+    "hillshade": "山體陰影",
+    "routeHelpers": "路線輔助",
+    "distanceMarkers": "距離標記（公里）",
+    "nearbyRoutes": "附近路線",
+    "pois": "興趣點"
   },
   "plan": {
     "title": "規劃路線",
@@ -260,6 +270,7 @@
     "peak": "山頂",
     "junction": "岔路",
     "hut": "山屋",
+    "shelter": "避難山屋",
     "view": "展望",
     "other": "其他"
   },

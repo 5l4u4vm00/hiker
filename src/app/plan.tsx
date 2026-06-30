@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CoordinateInput } from '@/components/coordinate-input';
 import { MapCanvas } from '@/components/map-canvas';
+import { MapOverlayLayers } from '@/components/map-overlay-layers';
 import { PlanOverlays } from '@/components/plan-overlays';
 import { PlanStatsBar } from '@/components/plan-stats-bar';
 import { PlanToolbar } from '@/components/plan-toolbar';
@@ -336,9 +337,11 @@ export default function PlanScreen() {
         bounds={editBounds}
         showUser
         showRecenter
+        showLayers
         userCoordinate={userCoord ?? undefined}
         controlsTopInset={statsBarHeight + Spacing.two}
         onPress={onMapPress}>
+        <MapOverlayLayers referenceLine={points} excludeRouteId={editingRouteId ?? undefined} />
         <PlanOverlays onEditWaypoint={onEditWaypoint} />
       </MapCanvas>
 

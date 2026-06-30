@@ -80,6 +80,16 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY NOT NULL,
   value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS pois (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'other',
+  lat REAL NOT NULL,
+  lon REAL NOT NULL,
+  elevation REAL,
+  note TEXT
+);
 `;
 
 /**

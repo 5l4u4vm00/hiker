@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FollowHud } from '@/components/follow-hud';
 import { MapCanvas } from '@/components/map-canvas';
+import { MapOverlayLayers } from '@/components/map-overlay-layers';
 import { PrimaryButton } from '@/components/primary-button';
 import { StatCard, StatGrid } from '@/components/stat-card';
 import { ThemedText } from '@/components/themed-text';
@@ -312,9 +313,14 @@ export default function MapScreen() {
         zoomLevel={isActive || isFollowing ? 15 : initialCenter ? 14 : undefined}
         headingUp={isActive || isFollowing}
         showCompass
+        showLayers
         userCoordinate={currentCoord ?? undefined}
         showRecenter={!isActive && !isFollowing}
         controlsTopInset={insets.top + followInset}>
+        <MapOverlayLayers
+          referenceLine={followPath?.geometry.coordinates as [number, number][] | undefined}
+          excludeRouteId={followKind === 'route' ? (followId ?? undefined) : undefined}
+        />
         {routeLineFeature ? (
           <GeoJSONSource id="follow-route" data={routeLineFeature}>
             <Layer
