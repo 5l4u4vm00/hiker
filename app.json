@@ -10,7 +10,7 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "supportsTablet": true,
-      "bundleIdentifier": "com.hiker.app",
+      "bundleIdentifier": "com.Aries.hiker",
       "infoPlist": {
         "UIBackgroundModes": [
           "location"
@@ -21,7 +21,7 @@
       }
     },
     "android": {
-      "package": "com.hiker.app",
+      "package": "com.aries.hiker",
       "permissions": [
         "android.permission.RECEIVE_BOOT_COMPLETED"
       ],
