@@ -17,7 +17,8 @@
   },
   "nav": {
     "route": "路線",
-    "hike": "健行"
+    "hike": "健行",
+    "offlineMaps": "離線地圖"
   },
   "map": {
     "startTitle": "開始健行？",
@@ -101,6 +102,8 @@
     "langChinese": "中文",
     "about": "關於",
     "aboutText": "Hiker 將你的所有資料儲存在這部裝置上。地圖資料 © OpenStreetMap 貢獻者。",
+    "offlineMaps": "離線地圖",
+    "offlineMapsManage": "管理離線地圖",
     "data": "資料",
     "clearData": "清除所有資料",
     "clearDataConfirmTitle": "要清除所有資料嗎？",
@@ -161,6 +164,9 @@
     "unknownError": "未知錯誤。",
     "deleteOfflineTitle": "刪除離線地圖？",
     "deleteOfflineMessage": "移除此路線已下載的圖磚？",
+    "limitReachedTitle": "已達下載上限",
+    "limitReachedMessage": "最多可保留 {{max}} 個離線地圖，請先刪除一個，或到設定頁管理。",
+    "offlineUsage": "已下載 {{count}} / {{max}} 個離線地圖",
     "distance": "距離",
     "ascent": "爬升",
     "difficulty": "難度",
@@ -170,6 +176,12 @@
     "followOnMap": "在地圖上跟隨",
     "editRoute": "編輯路線",
     "hint": "請先下載此路線的地圖範圍，讓它在沒有訊號時也能使用。「在地圖上跟隨」會將路線疊加在地圖分頁，你可以在那裡記錄健行並離線保持在路線上。"
+  },
+  "offlineMaps": {
+    "summary": "{{count}} / {{max}} 個 · {{size}}",
+    "empty": "尚未下載任何離線地圖。",
+    "deleteTitle": "刪除離線地圖？",
+    "deleteMessage": "移除「{{name}}」已下載的圖磚？"
   },
   "hikeDetail": {
     "distance": "距離",

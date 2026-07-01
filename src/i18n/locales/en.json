@@ -17,7 +17,8 @@
   },
   "nav": {
     "route": "Route",
-    "hike": "Hike"
+    "hike": "Hike",
+    "offlineMaps": "Offline maps"
   },
   "map": {
     "startTitle": "Start hike?",
@@ -101,6 +102,8 @@
     "langChinese": "中文",
     "about": "About",
     "aboutText": "Hiker stores all your data on this device. Maps © OpenStreetMap contributors.",
+    "offlineMaps": "Offline maps",
+    "offlineMapsManage": "Manage offline maps",
     "data": "Data",
     "clearData": "Clear all data",
     "clearDataConfirmTitle": "Clear all data?",
@@ -161,6 +164,9 @@
     "unknownError": "Unknown error.",
     "deleteOfflineTitle": "Delete offline map?",
     "deleteOfflineMessage": "Remove the downloaded tiles for this route?",
+    "limitReachedTitle": "Download limit reached",
+    "limitReachedMessage": "You can keep up to {{max}} offline maps. Delete one first, or manage them in Settings.",
+    "offlineUsage": "{{count}} / {{max}} offline maps saved",
     "distance": "Distance",
     "ascent": "Ascent",
     "difficulty": "Difficulty",
@@ -170,6 +176,12 @@
     "followOnMap": "Follow on map",
     "editRoute": "Edit route",
     "hint": "Download this route's map area first so it works without signal. \"Follow on map\" overlays the route on the Map tab, where you can record your hike and stay on track offline."
+  },
+  "offlineMaps": {
+    "summary": "{{count}} / {{max}} maps · {{size}}",
+    "empty": "No offline maps downloaded yet.",
+    "deleteTitle": "Delete offline map?",
+    "deleteMessage": "Remove the downloaded tiles for \"{{name}}\"?"
   },
   "hikeDetail": {
     "distance": "Distance",

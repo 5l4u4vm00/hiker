@@ -1,3 +1,4 @@
+import { OfflineManager } from '@maplibre/maplibre-react-native';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +25,10 @@ export default function RootLayout() {
     (async () => {
       try {
         await getDatabase();
+        // Enlarge MapLibre's ambient tile cache (default ~50 MB) so browsed
+        // basemap tiles persist and re-panning the same areas issues no repeat
+        // MapTiler requests.
+        await OfflineManager.setMaximumAmbientCacheSize(256 * 1024 * 1024);
         await useThemeStore.getState().hydrate();
         await useLanguageStore.getState().hydrate();
         await useMapLayerStore.getState().hydrate();
@@ -56,6 +61,10 @@ export default function RootLayout() {
           <Stack.Screen
             name="plan"
             options={{ headerShown: true, title: t('plan.title'), headerBackTitle: t('common.back') }}
+          />
+          <Stack.Screen
+            name="offline-maps"
+            options={{ headerShown: true, title: t('nav.offlineMaps'), headerBackTitle: t('common.back') }}
           />
         </Stack>
       </ThemeProvider>

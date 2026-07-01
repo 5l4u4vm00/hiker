@@ -39,6 +39,12 @@ export interface OfflineRegionPreset {
 const ROUTE_BBOX_PADDING_DEG = 0.01;
 
 /**
+ * Max offline packs a user may keep, to bound device storage. Packs live outside
+ * the ambient cache and are never auto-evicted, so growth is otherwise unbounded.
+ */
+export const MAX_OFFLINE_REGIONS = 10;
+
+/**
  * Builds a downloadable tile pack covering a route's geometry, keyed `route-<id>`
  * so the route detail screen can detect and delete it. Returns null when the
  * route has no coordinates. `coords` are GeoJSON `[lon, lat]` pairs.
@@ -63,7 +69,9 @@ export function regionForRoute(
     name,
     bounds: [west - p, south - p, east + p, north + p],
     minZoom: 11,
-    maxZoom: 15,
+    // Matches the live basemap's z14 source cap (see buildRasterStyle): the map
+    // never displays past z14, so downloading z15 would be wasted tiles.
+    maxZoom: 14,
   };
 }
 
@@ -135,6 +143,22 @@ export async function listDownloadedRegions(): Promise<DownloadedRegion[]> {
 
 export async function deleteRegion(id: string): Promise<void> {
   await OfflineManager.deletePack(id);
+}
+
+/**
+ * Deletes every downloaded offline tile pack. Offline packs live in MapLibre's
+ * own native store (not SQLite), so "clear all data" must call this explicitly to
+ * remove them. Best-effort per pack; a failure on one does not stop the others.
+ */
+export async function deleteAllRegions(): Promise<void> {
+  const packs = await OfflineManager.getPacks();
+  await Promise.all(
+    packs.map((pack) =>
+      OfflineManager.deletePack(pack.id).catch(() => {
+        // Ignore individual failures so a single bad pack can't block the reset.
+      }),
+    ),
+  );
 }
 
 export function formatBytes(bytes: number): string {

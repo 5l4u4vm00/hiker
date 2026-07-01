@@ -4,9 +4,17 @@ import type { TrackPoint } from '@/db/types';
 
 /**
  * Builds the MapTiler "Outdoor" raster style: contour lines, trails, and peaks
- * suited to hiking. Tiles are 256px and the `token` is appended as a query param.
- * MapTiler's terms permit offline caching of bounded areas (unlike the public OSM
- * servers), so the offline downloader can use this style directly.
+ * suited to hiking. The `token` is appended as a query param. MapTiler's terms
+ * permit offline caching of bounded areas (unlike the public OSM servers), so the
+ * offline downloader can use this style directly.
+ *
+ * Two deliberate choices minimize MapTiler tile requests (billed per request):
+ * - **512px tiles** (no `/256/` segment, `tileSize: 512`): one 512px tile covers
+ *   the area of four 256px tiles, so a viewport costs ~4x fewer requests.
+ * - **`maxzoom: 14`**: beyond z14 MapLibre upscales cached/offline-pack tiles
+ *   instead of fetching, so the app can never request the z15-20 tile explosion.
+ *   "Large scale" detail past z14 comes from downloaded offline packs (served
+ *   locally with zero requests). Do not raise this to chase sharper deep zoom.
  *
  * The token is supplied by the caller (see `MAPTILER_TOKEN` in
  * `@/state/mapTokenStore`) rather than read here.
@@ -17,9 +25,9 @@ export function buildRasterStyle(token: string): StyleSpecification {
     sources: {
       maptiler: {
         type: 'raster',
-        tiles: [`https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=${token}`],
-        tileSize: 256,
-        maxzoom: 20,
+        tiles: [`https://api.maptiler.com/maps/outdoor-v2/{z}/{x}/{y}.png?key=${token}`],
+        tileSize: 512,
+        maxzoom: 14,
         attribution: '© MapTiler © OpenStreetMap contributors',
       },
     },

@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -95,6 +97,25 @@ function LanguageSegmentedControl() {
   );
 }
 
+function OfflineMapsRow() {
+  const { t } = useTranslation();
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.navigate('/offline-maps')}
+      style={({ pressed }) => [
+        styles.navRow,
+        { backgroundColor: theme.backgroundElement },
+        pressed && { opacity: 0.6 },
+      ]}>
+      <ThemedText style={styles.navLabel}>{t('settings.offlineMapsManage')}</ThemedText>
+      <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+    </Pressable>
+  );
+}
+
 function ClearDataButton() {
   const { t } = useTranslation();
 
@@ -158,6 +179,11 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>{t('settings.offlineMaps')}</ThemedText>
+          <OfflineMapsRow />
+        </View>
+
+        <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>{t('settings.about')}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
             {t('settings.aboutText')}
@@ -190,6 +216,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   segmentLabel: { fontWeight: '600' },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.three,
+    borderRadius: 10,
+  },
+  navLabel: { fontWeight: '600' },
   clearButton: {
     paddingVertical: Spacing.three,
     paddingHorizontal: Spacing.three,

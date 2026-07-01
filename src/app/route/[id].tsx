@@ -19,6 +19,7 @@ import {
   deleteRegion,
   downloadRegion,
   listDownloadedRegions,
+  MAX_OFFLINE_REGIONS,
   regionForRoute,
 } from '@/map/offlineTiles';
 import { useFollowStore } from '@/state/followStore';
@@ -38,6 +39,9 @@ export default function RouteDetailScreen() {
   const [downloadedPackId, setDownloadedPackId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [progress, setProgress] = useState(0);
+  // How many offline packs exist in total (across all routes), for the usage
+  // caption and the download cap.
+  const [offlineCount, setOfflineCount] = useState(0);
 
   const refreshDownloaded = useCallback(async () => {
     if (!id) return;
@@ -45,6 +49,7 @@ export default function RouteDetailScreen() {
       const regions = await listDownloadedRegions();
       const pack = regions.find((r) => r.key === `route-${id}`);
       setDownloadedPackId(pack?.id ?? null);
+      setOfflineCount(regions.length);
     } catch {
       setDownloadedPackId(null);
     }
@@ -87,6 +92,17 @@ export default function RouteDetailScreen() {
     const preset = regionForRoute(route.id, route.name, route.geometry.coordinates);
     if (!preset) {
       Alert.alert(t('routeDetail.cannotDownloadTitle'), t('routeDetail.cannotDownloadMessage'));
+      return;
+    }
+    // Cap total offline packs to bound device storage. A route already downloaded
+    // shows the "offline ready" row instead of this button, but guard anyway.
+    const regions = await listDownloadedRegions();
+    const already = regions.some((r) => r.key === `route-${route.id}`);
+    if (!already && regions.length >= MAX_OFFLINE_REGIONS) {
+      Alert.alert(
+        t('routeDetail.limitReachedTitle'),
+        t('routeDetail.limitReachedMessage', { max: MAX_OFFLINE_REGIONS }),
+      );
       return;
     }
     setDownloading(true);
@@ -258,6 +274,12 @@ export default function RouteDetailScreen() {
             </Pressable>
           )}
 
+          {!downloadedPackId ? (
+            <ThemedText type="small" themeColor="textSecondary" style={styles.offlineUsage}>
+              {t('routeDetail.offlineUsage', { count: offlineCount, max: MAX_OFFLINE_REGIONS })}
+            </ThemedText>
+          ) : null}
+
           <PrimaryButton title={t('routeDetail.followOnMap')} onPress={onFollow} />
 
           {saved && route.source === 'manual' ? (
@@ -294,6 +316,7 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.85 },
   downloadButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  offlineUsage: { textAlign: 'center' },
   downloadRow: {
     flexDirection: 'row',
     alignItems: 'center',
