@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AdBanner } from '@/components/ad-banner';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -420,6 +421,8 @@ export default function RoutesScreen() {
           </Pressable>
         )}
       />
+
+      <AdBanner />
     </ThemedView>
   );
 }

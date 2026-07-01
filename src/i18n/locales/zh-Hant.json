@@ -181,7 +181,13 @@
     "summary": "{{count}} / {{max}} 個 · {{size}}",
     "empty": "尚未下載任何離線地圖。",
     "deleteTitle": "刪除離線地圖？",
-    "deleteMessage": "移除「{{name}}」已下載的圖磚？"
+    "deleteMessage": "移除「{{name}}」已下載的圖磚？",
+    "supportTitle": "支持 Hiker",
+    "supportBody": "Hiker 免費且廣告極少。觀看一段短廣告，幫助我們維持下去。",
+    "supportButton": "觀看短廣告",
+    "supportThanksTitle": "感謝你！",
+    "supportThanksMessage": "感謝你支持 Hiker。",
+    "supportUnavailable": "目前沒有可用的廣告，請稍後再試。"
   },
   "hikeDetail": {
     "distance": "距離",

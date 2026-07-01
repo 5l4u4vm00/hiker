@@ -11,7 +11,10 @@ All of your content stays on your device unless you explicitly choose to share i
 
 - We do **not** collect, sell, or transmit your personal data to us — we have no server.
 - All your hiking data is stored **locally on your device**.
-- We use **no analytics, advertising, or crash-reporting** services.
+- We use **no analytics or crash-reporting** services.
+- We show ads through **Google AdMob**, which may collect device and advertising
+  identifiers to serve ads. You control personalized ads via the consent prompts
+  described below.
 - The app contacts a few third-party map and weather services to function; these
   receive only map tile or coordinate requests, never your identity.
 
@@ -63,8 +66,34 @@ Data leaves your device only in these cases:
    you choose the recipient. The app never sends these automatically and never
    transmits them to us.
 
+5. **Advertising (Google AdMob)** — the app displays ads served by Google AdMob.
+   To request and measure ads, Google may collect device information and identifiers
+   (including the advertising identifier), approximate location derived from your IP
+   address, and ad-interaction data. See the "Advertising" section below and Google's
+   policy: https://policies.google.com/technologies/ads
+
 These third parties operate under their own privacy policies. The app functions
-offline; if these services are unreachable, the app degrades gracefully.
+offline; if these services are unreachable, the app degrades gracefully — ads simply
+do not load and the rest of the app is unaffected.
+
+## Advertising
+
+Hiker shows ads through **Google AdMob** (banner, interstitial, and rewarded ads).
+AdMob is provided by Google and may collect and process device and advertising
+identifiers, coarse location inferred from your IP address, and ad-engagement data
+to deliver and measure ads.
+
+- **Consent (GDPR / EU).** On first launch, users in regions that require it are
+  shown a consent form (via Google's User Messaging Platform) to choose whether ads
+  may be personalized.
+- **App Tracking Transparency (iOS).** On iOS, the system asks for your permission
+  before the advertising identifier is used for tracking. If you decline, you will
+  still see ads, but they will not be personalized.
+- Ads only load when the device is online; while hiking offline, no ad data is
+  requested.
+
+For details on how Google uses this data, see
+https://policies.google.com/technologies/partner-sites
 
 ## Safety / SOS features
 

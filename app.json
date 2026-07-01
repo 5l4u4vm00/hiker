@@ -61,7 +61,20 @@
       "@maplibre/maplibre-react-native",
       "expo-sqlite",
       "expo-sharing",
-      "expo-localization"
+      "expo-localization",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX",
+          "iosAppId": "ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX"
+        }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "Hiker uses this identifier to deliver personalized ads. You can hike fully without allowing it."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

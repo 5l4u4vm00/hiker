@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { initAds } from '@/ads/admob';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { getDatabase } from '@/db/client';
 import { seedPoisIfEmpty } from '@/db/pois';
@@ -34,6 +35,9 @@ export default function RootLayout() {
         await useMapLayerStore.getState().hydrate();
         await seedPoisIfEmpty();
         await restoreRecording();
+        // Ads are best-effort and must not block launch; initAds swallows its
+        // own errors, and this outer catch covers anything unexpected.
+        await initAds();
       } catch (err) {
         console.warn('[startup] initialization failed', err);
       }

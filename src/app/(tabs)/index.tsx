@@ -8,6 +8,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeIn, FadeOut, LinearTransition, runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useInterstitial } from '@/ads/useInterstitial';
 import { FollowHud } from '@/components/follow-hud';
 import { MapCanvas } from '@/components/map-canvas';
 import { MapOverlayLayers } from '@/components/map-overlay-layers';
@@ -60,6 +61,7 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const { t } = useTranslation();
+  const { show: showInterstitial } = useInterstitial();
   const { trackId, status, startedAt, pausedAt, pausedMs, stats, live } = useRecordingStore();
   const followKind = useFollowStore((s) => s.kind);
   const followId = useFollowStore((s) => s.id);
@@ -204,7 +206,12 @@ export default function MapScreen() {
           setBusy(true);
           try {
             const id = await stopRecording();
-            if (id) router.push(`/hike/${id}`);
+            if (id) {
+              router.push(`/hike/${id}`);
+              // Show an interstitial over the summary as a natural break point.
+              // No-ops when nothing is loaded (e.g. offline).
+              showInterstitial();
+            }
           } finally {
             setBusy(false);
           }
@@ -223,7 +230,7 @@ export default function MapScreen() {
         },
       },
     ]);
-  }, [t]);
+  }, [t, showInterstitial]);
 
   // Elapsed recording time (excludes paused spans), the single source of truth
   // for the timer. Frozen while paused, so it never drops when pausing/finishing

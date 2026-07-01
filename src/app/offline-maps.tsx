@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useRewarded } from '@/ads/useRewarded';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -17,6 +18,7 @@ import {
 } from '@/map/offlineTiles';
 
 const DESTRUCTIVE = '#E5484D';
+const ACCENT = '#208AEF';
 
 /**
  * Lists every downloaded offline tile pack with its size and the running total,
@@ -28,6 +30,23 @@ export default function OfflineMapsScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [regions, setRegions] = useState<DownloadedRegion[]>([]);
+  const rewarded = useRewarded();
+
+  // Grant the reward once the user has watched enough of the ad. This example
+  // just thanks them; swap in a concrete reward (e.g. a bonus offline slot).
+  useEffect(() => {
+    if (rewarded.isEarnedReward) {
+      Alert.alert(t('offlineMaps.supportThanksTitle'), t('offlineMaps.supportThanksMessage'));
+    }
+  }, [rewarded.isEarnedReward, t]);
+
+  const onWatchAd = useCallback(() => {
+    if (rewarded.isLoaded) {
+      rewarded.show();
+    } else {
+      Alert.alert(t('offlineMaps.supportTitle'), t('offlineMaps.supportUnavailable'));
+    }
+  }, [rewarded, t]);
 
   const reload = useCallback(async () => {
     try {
@@ -105,6 +124,26 @@ export default function OfflineMapsScreen() {
             </ThemedView>
           ))
         )}
+
+        <ThemedView type="backgroundElement" style={styles.supportCard}>
+          <View style={styles.supportHeader}>
+            <Ionicons name="heart" size={18} color={ACCENT} />
+            <ThemedText style={styles.name}>{t('offlineMaps.supportTitle')}</ThemedText>
+          </View>
+          <ThemedText type="small" themeColor="textSecondary">
+            {t('offlineMaps.supportBody')}
+          </ThemedText>
+          <Pressable
+            onPress={onWatchAd}
+            style={styles.supportButton}
+            accessibilityRole="button"
+            accessibilityLabel={t('offlineMaps.supportButton')}>
+            <Ionicons name="play-circle" size={18} color="#ffffff" />
+            <ThemedText style={styles.supportButtonLabel}>
+              {t('offlineMaps.supportButton')}
+            </ThemedText>
+          </Pressable>
+        </ThemedView>
       </ScrollView>
     </ThemedView>
   );
@@ -121,4 +160,22 @@ const styles = StyleSheet.create({
   },
   rowText: { flex: 1, gap: Spacing.half },
   name: { fontWeight: '600' },
+  supportCard: {
+    gap: Spacing.two,
+    padding: Spacing.three,
+    borderRadius: Spacing.three,
+    marginTop: Spacing.two,
+  },
+  supportHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  supportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.one,
+    backgroundColor: ACCENT,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.four,
+    marginTop: Spacing.one,
+  },
+  supportButtonLabel: { color: '#ffffff', fontWeight: '700' },
 });

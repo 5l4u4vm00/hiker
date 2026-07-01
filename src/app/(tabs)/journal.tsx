@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Pressable, SectionList, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AdBanner } from '@/components/ad-banner';
 import { StatCard, StatGrid } from '@/components/stat-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -140,6 +141,8 @@ export default function JournalScreen() {
           </Pressable>
         )}
       />
+
+      <AdBanner />
     </ThemedView>
   );
 }

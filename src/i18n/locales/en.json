@@ -181,7 +181,13 @@
     "summary": "{{count}} / {{max}} maps · {{size}}",
     "empty": "No offline maps downloaded yet.",
     "deleteTitle": "Delete offline map?",
-    "deleteMessage": "Remove the downloaded tiles for \"{{name}}\"?"
+    "deleteMessage": "Remove the downloaded tiles for \"{{name}}\"?",
+    "supportTitle": "Support Hiker",
+    "supportBody": "Hiker is free and ad-light. Watch a short ad to help keep it that way.",
+    "supportButton": "Watch a short ad",
+    "supportThanksTitle": "Thank you!",
+    "supportThanksMessage": "Thanks for supporting Hiker.",
+    "supportUnavailable": "No ad is available right now. Please try again later."
   },
   "hikeDetail": {
     "distance": "Distance",
