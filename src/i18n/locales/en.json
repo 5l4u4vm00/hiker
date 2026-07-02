@@ -100,6 +100,9 @@
     "langSystem": "System",
     "langEnglish": "English",
     "langChinese": "中文",
+    "navigation": "Navigation",
+    "voiceNavigation": "Voice guidance",
+    "voiceNavigationHint": "Speak off-route alerts, upcoming waypoints, and arrivals while following a route.",
     "about": "About",
     "aboutText": "Hiker stores all your data on this device. Maps © OpenStreetMap contributors.",
     "offlineMaps": "Offline maps",
@@ -222,7 +225,16 @@
     "eta": "ETA",
     "next": "Next",
     "locating": "Locating…",
-    "stopFollowing": "Stop following route"
+    "stopFollowing": "Stop following route",
+    "muteVoice": "Mute voice guidance",
+    "unmuteVoice": "Unmute voice guidance"
+  },
+  "voice": {
+    "offRoute": "Off route. Return to the trail.",
+    "backOnRoute": "Back on route.",
+    "approachingWaypoint": "In {{distance}}, {{name}}.",
+    "arrivedWaypoint": "Arrived at {{name}}.",
+    "arrivedDestination": "You have reached your destination."
   },
   "mapCanvas": {
     "recenter": "Recenter on my location",

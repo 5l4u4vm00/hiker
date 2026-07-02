@@ -23,6 +23,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { formatCoordinate, lastCoordinate, pointsToLineString } from '@/map/mapStyle';
 import { useCurrentLocation } from '@/map/use-current-location';
 import { useFollowNavigation } from '@/map/use-follow-navigation';
+import { useVoiceGuidance } from '@/map/use-voice-guidance';
 import { useFollowStore } from '@/state/followStore';
 import { activeElapsedMs, useRecordingStore } from '@/state/recordingStore';
 import { daylight, formatClock } from '@/sun/daylight';
@@ -253,6 +254,10 @@ export default function MapScreen() {
     currentCoord,
     isActive ? { distanceM: stats.distanceM, movingTimeS: stats.movingTimeS } : null,
   );
+
+  // Spoken guidance derived from the same nav events (off-route, waypoints,
+  // arrival). No-ops when voice is muted; see @/tracking/voice.
+  useVoiceGuidance(followPath?.name, nav);
 
   // Push the map controls and coordinate chip below the follow HUD. The HUD sits
   // at `insets.top + Spacing.two`; its measured height varies (e.g. the off-route

@@ -100,6 +100,9 @@
     "langSystem": "系統",
     "langEnglish": "English",
     "langChinese": "中文",
+    "navigation": "導航",
+    "voiceNavigation": "語音導航",
+    "voiceNavigationHint": "跟隨路線時，以語音提示偏離路線、即將抵達的航點與抵達通知。",
     "about": "關於",
     "aboutText": "Hiker 將你的所有資料儲存在這部裝置上。地圖資料 © OpenStreetMap 貢獻者。",
     "offlineMaps": "離線地圖",
@@ -222,7 +225,16 @@
     "eta": "預計到達",
     "next": "下一個",
     "locating": "定位中…",
-    "stopFollowing": "停止跟隨路線"
+    "stopFollowing": "停止跟隨路線",
+    "muteVoice": "關閉語音導航",
+    "unmuteVoice": "開啟語音導航"
+  },
+  "voice": {
+    "offRoute": "已偏離路線，請返回步道。",
+    "backOnRoute": "已回到路線上。",
+    "approachingWaypoint": "再 {{distance}}，{{name}}。",
+    "arrivedWaypoint": "已抵達 {{name}}。",
+    "arrivedDestination": "您已抵達目的地。"
   },
   "mapCanvas": {
     "recenter": "回到我的位置",

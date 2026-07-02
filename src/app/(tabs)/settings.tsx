@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -12,6 +12,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { type LanguagePreference, useLanguageStore } from '@/state/languageStore';
 import { useRecordingStore } from '@/state/recordingStore';
 import { type ThemePreference, useThemeStore } from '@/state/themeStore';
+import { useVoiceStore } from '@/state/voiceStore';
+import { stopSpeaking } from '@/tracking/voice';
 
 const DESTRUCTIVE = '#E5484D';
 
@@ -93,6 +95,30 @@ function LanguageSegmentedControl() {
           </Pressable>
         );
       })}
+    </View>
+  );
+}
+
+function VoiceNavigationRow() {
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const enabled = useVoiceStore((s) => s.enabled);
+  const setEnabled = useVoiceStore((s) => s.setEnabled);
+
+  const onToggle = (value: boolean) => {
+    if (!value) stopSpeaking();
+    setEnabled(value);
+  };
+
+  return (
+    <View style={[styles.toggleRow, { backgroundColor: theme.backgroundElement }]}>
+      <View style={styles.toggleText}>
+        <ThemedText style={styles.navLabel}>{t('settings.voiceNavigation')}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {t('settings.voiceNavigationHint')}
+        </ThemedText>
+      </View>
+      <Switch value={enabled} onValueChange={onToggle} />
     </View>
   );
 }
@@ -179,6 +205,11 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <ThemedText style={styles.sectionTitle}>{t('settings.navigation')}</ThemedText>
+          <VoiceNavigationRow />
+        </View>
+
+        <View style={styles.section}>
           <ThemedText style={styles.sectionTitle}>{t('settings.offlineMaps')}</ThemedText>
           <OfflineMapsRow />
         </View>
@@ -225,6 +256,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   navLabel: { fontWeight: '600' },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.three,
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.three,
+    borderRadius: 10,
+  },
+  toggleText: { flex: 1, gap: 2 },
   clearButton: {
     paddingVertical: Spacing.three,
     paddingHorizontal: Spacing.three,

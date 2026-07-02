@@ -6,7 +6,9 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import type { FollowNav } from '@/map/use-follow-navigation';
+import { useVoiceStore } from '@/state/voiceStore';
 import { formatDistance, formatDurationShort } from '@/tracking/stats';
+import { stopSpeaking } from '@/tracking/voice';
 
 const ROUTE_COLOR = '#E5484D';
 const OFF_ROUTE_COLOR = '#FF9500';
@@ -28,11 +30,19 @@ interface FollowHudProps {
  */
 export function FollowHud({ name, nav, topInset, onClose, onHeightChange }: FollowHudProps) {
   const { t } = useTranslation();
+  const voiceEnabled = useVoiceStore((s) => s.enabled);
+  const toggleVoice = useVoiceStore((s) => s.toggle);
   const offRoute = nav?.offRoute ?? false;
   const accent = offRoute ? OFF_ROUTE_COLOR : ROUTE_COLOR;
   const progressPct = nav ? Math.round(nav.progress * 100) : 0;
 
   const handleLayout = (e: LayoutChangeEvent) => onHeightChange?.(e.nativeEvent.layout.height);
+
+  const handleToggleVoice = () => {
+    // Cut off any in-progress utterance the moment the user mutes.
+    if (voiceEnabled) stopSpeaking();
+    toggleVoice();
+  };
 
   return (
     <ThemedView
@@ -49,6 +59,17 @@ export function FollowHud({ name, nav, topInset, onClose, onHeightChange }: Foll
             {name}
           </ThemedText>
         </View>
+        <Pressable
+          onPress={handleToggleVoice}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t(voiceEnabled ? 'followHud.muteVoice' : 'followHud.unmuteVoice')}>
+          <Ionicons
+            name={voiceEnabled ? 'volume-high' : 'volume-mute'}
+            size={22}
+            color={voiceEnabled ? accent : '#6B7280'}
+          />
+        </Pressable>
         <Pressable
           onPress={onClose}
           hitSlop={8}

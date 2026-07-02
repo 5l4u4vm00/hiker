@@ -13,6 +13,7 @@ import '@/i18n';
 import { useLanguageStore } from '@/state/languageStore';
 import { useMapLayerStore } from '@/state/mapLayerStore';
 import { useThemeStore } from '@/state/themeStore';
+import { useVoiceStore } from '@/state/voiceStore';
 // Importing the task module registers the background location task at startup.
 import '@/tracking/locationTask';
 import { restoreRecording } from '@/tracking/recorder';
@@ -32,6 +33,7 @@ export default function RootLayout() {
         await useThemeStore.getState().hydrate();
         await useLanguageStore.getState().hydrate();
         await useMapLayerStore.getState().hydrate();
+        await useVoiceStore.getState().hydrate();
         await seedPoisIfEmpty();
         await restoreRecording();
       } catch (err) {
